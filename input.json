@@ -1,0 +1,25 @@
+{
+    "polymer_type": "chain",
+    "crosslinks_psmiles_list": ["O=C(NCCCC(CCCNC(N[*])=O)CCNC(N[*])=O)N[*]", "C(C(COCCOCC[*])COCCOCC[*])OCCOCC[*]"],
+    "crosslinks_numbers": [3, 3],
+    "crosslinks_poly_type": [[0, 0, 0], [1, 1, 1]],
+    "cross_poly_connectivity": [[0, 1]],
+    "crosslinks_pose_random": true,
+    "crosslinks_pose": [],
+    "crosslinking_percentage": 0.75,
+    "crosslinks_extension_size": 10,
+    "crosslinks_random_pose_distance": 60,
+
+    "chain_curve_list": ["../3Dflower.csv"],
+    "chain_psmiles_list": ["[*]CC[*]"],
+    "random_polymerization": false,
+    "chain_max_polymerization_degree": 5000,
+    "optimize_size": 4,
+    
+    "fasta_sequence": "",
+    "box_size": [1000000, 1000000, 1000000],
+    "seed": 114514,
+    "output_directory_path": "../data",
+    "file_info": "NO_INFO",
+    "verbose": false
+}

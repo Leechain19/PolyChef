@@ -1,0 +1,36 @@
+cmake_minimum_required(VERSION 3.18)
+
+project(atom_search_cpp VERSION 1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+
+# 设置 Python 的头文件路径
+#set(Python3_INCLUDE_DIRS "/home/public/miniconda3/envs/develop/include/python3.8")
+
+# 设置 Python 的库路径
+#set(Python3_LIBRARIES "/home/public/miniconda3/envs/develop/lib/libpython3.8.so")
+
+find_package(Python3 REQUIRED COMPONENTS Development)
+find_package(OpenMP REQUIRED)
+
+message(STATUS "Python3 Include Dirs: ${Python3_INCLUDE_DIRS}")
+message(STATUS "Python3 Libraries: ${Python3_LIBRARIES}")
+
+# Python 头文件
+#include_directories("/home/public/miniconda3/envs/develop/include/python3.8")
+
+# Eigen3
+include_directories("/usr/local/include/eigen3")
+
+# Python 库文件
+link_directories("/home/public/miniconda3/envs/develop/lib/python3.8/site-packages")
+#link_libraries("/home/public/miniconda3/envs/develop/lib/libpython3.8.so")
+
+add_executable(atom-search-cpp main.cpp atom.cpp chemio.cpp chemtable.cpp curve.cpp graph.cpp grid.cpp mathfunc.cpp spreading.cpp optimizer.cpp)
+
+target_include_directories(atom-search-cpp PRIVATE ${Python3_INCLUDE_DIRS})
+target_link_libraries(atom-search-cpp PRIVATE ${Python3_LIBRARIES} OpenMP::OpenMP_CXX)

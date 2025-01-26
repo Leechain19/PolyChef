@@ -1,0 +1,80 @@
+//
+// Created by AnthonyZhang on 2025/1/7.
+//
+#include "grid.h"
+
+Grid::Grid(float interval) : _interval(interval), _size(0) {}
+Grid::~Grid() = default;
+
+int Grid::_getpos(float x) const {
+    return static_cast<int>(x / this->_interval);
+}
+
+float Grid::interval() const {
+    return this->_interval;
+}
+
+int Grid::size() const {
+    return this->_size;
+}
+
+std::pair<std::shared_ptr<Atom>, float> Grid::search_nn(const Position &point) {
+    auto x = point[0], y = point[1], z = point[2];
+    auto xx = _getpos(x), yy = _getpos(y), zz = _getpos(z);
+    float min_dist = grid::inf;
+    std::shared_ptr<Atom> ret_ptr{};
+
+    #pragma omp parallel for default(none), shared(xx, yy, zz, point, min_dist, ret_ptr)
+    for (int i = xx - 1; i <= xx + 1; i ++ ) {
+        for (int j = yy - 1; j <= yy + 1; j ++ ) {
+            for (int k = zz - 1; k <= zz + 1; k ++) {
+                if (!mp.count({i, j, k})) continue;
+                const auto &vec = mp[{i, j, k}];
+                for (const auto &ptr : vec) {
+                    auto p = ptr->getPosition();
+                    auto cur_dist = atom::positionDistance(p, point);
+                    #pragma omp critical
+                    {
+                        if (cur_dist < min_dist) {
+                            min_dist = cur_dist;
+                            ret_ptr = ptr;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return std::make_pair(ret_ptr, min_dist);
+}
+
+void Grid::add(const Position &point, const std::string &symbol, bool including_hydrogen) {
+    if (symbol.empty()) {
+        throw exception::InvalidParameterException("The symbol string is empty");
+    }
+    if (!including_hydrogen && symbol[0] == 'H') return;
+    int xx = _getpos(point(0)), yy = _getpos(point(1)), zz = _getpos(point(2));
+    auto p = std::make_shared<Atom>(symbol, point);
+    this->mp[{xx, yy, zz}].emplace_back(p);
+    this->_size += 1;
+}
+
+void Grid::add(const std::shared_ptr<Atom>& atom_ptr, bool including_hydrogen) {
+    if (atom_ptr->getSymbol().empty()) {
+        throw exception::InvalidParameterException("The symbol string is empty");
+    }
+    if (!including_hydrogen && atom_ptr->getSymbol()[0] == 'H') return;
+
+    int xx = _getpos(atom_ptr->getx()), yy = _getpos(atom_ptr->gety()), zz = _getpos(atom_ptr->getz());
+    this->mp[{xx, yy, zz}].emplace_back(atom_ptr);
+    this->_size += 1;
+}
+
+void Grid::add_mol(const Graph &g, bool including_hydrogen) {
+    for (const auto& ptr : g.getAtomVec()) {
+        add(ptr, including_hydrogen);
+    }
+}
+
+bool Grid::isCollision(const Position &point, float threshold) {
+    return search_nn(point).second < threshold;
+}
