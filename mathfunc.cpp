@@ -7,7 +7,7 @@
 
 Eigen::Matrix3f rodrigues(const Vector &K, float theta) {
     Vector norm_K = K.normalized();
-    float k1 = norm_K(0), k2 = norm_K(1), k3 = norm_K(2);
+    float k1 = norm_K.x(), k2 = norm_K.y(), k3 = norm_K.z();
     Eigen::RowVector3f norm_KT = norm_K.transpose();
     float cos_theta = std::cos(theta);
     float sin_theta = std::sin(theta);

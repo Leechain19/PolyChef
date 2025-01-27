@@ -8,7 +8,7 @@ Atom::Atom() : symbol(std::string()), x(0.0), y(0.0), z(0.0) {}
 
 Atom::Atom(std::string symbol, float x, float y, float z) : symbol(std::move(symbol)), x(x), y(y), z(z) {}
 
-Atom::Atom(std::string symbol, const Position& pos) : Atom(std::move(symbol), pos(0), pos(1), pos(2)) {}
+Atom::Atom(std::string symbol, const Position& pos) : Atom(std::move(symbol), pos.x(), pos.y(), pos.z()) {}
 
 Atom::Atom(Atom&& o) noexcept : symbol(std::move(o.symbol)), x(o.x), y(o.y), z(o.z) {}
 
@@ -83,6 +83,10 @@ void Atom::moveTo(float nx, float ny, float nz) {
     this->x = nx;
     this->y = ny;
     this->z = nz;
+}
+
+void Atom::moveTo(const Position& pos) {
+    moveTo(pos.x(), pos.y(), pos.z());
 }
 
 void Atom::rotate(const Eigen::Matrix3f& rod, const Position& ver) {
@@ -183,6 +187,10 @@ void Poly::moveTo(float nx, float ny, float nz) {
     this->x = nx;
     this->y = ny;
     this->z = nz;
+}
+
+void Poly::moveTo(const Position& pos) {
+    moveTo(pos.x(), pos.y(), pos.z());
 }
 
 void Poly::rotate(const Eigen::Matrix3f& rod, const Position& ver) {

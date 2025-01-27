@@ -53,6 +53,8 @@ public:
 
     void moveTo(float nx, float ny, float nz);
 
+    void moveTo(const Position& pos);
+
     void rotate(const Eigen::Matrix3f& rod, const Position& ver);
 
     [[nodiscard]] Position getPosition() const;
@@ -97,6 +99,8 @@ public:
     void translation(float dx, float dy, float dz);
 
     void moveTo(float nx, float ny, float nz);
+
+    void moveTo(const Position& pos);
 
     void rotate(const Eigen::Matrix3f& rod, const Position& ver);
 

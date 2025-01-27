@@ -52,7 +52,7 @@ void Grid::add(const Position &point, const std::string &symbol, bool including_
         throw exception::InvalidParameterException("The symbol string is empty");
     }
     if (!including_hydrogen && symbol[0] == 'H') return;
-    int xx = _getpos(point(0)), yy = _getpos(point(1)), zz = _getpos(point(2));
+    int xx = _getpos(point.x()), yy = _getpos(point.y()), zz = _getpos(point.z());
     auto p = std::make_shared<Atom>(symbol, point);
     this->mp[{xx, yy, zz}].emplace_back(p);
     this->_size += 1;

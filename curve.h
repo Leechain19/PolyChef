@@ -8,6 +8,7 @@
 #include "atom.h"
 #include "Eigen/Dense"
 #include "grid.h"
+#include "kdtree/kdtree.hpp"
 #include <memory>
 #include <utility>
 #include <vector>
@@ -23,7 +24,8 @@ struct Node {
     std::shared_ptr<Node> fa;
     Node(Position pos, std::shared_ptr<Node> fa);
     virtual ~Node() = default;
-    [[nodiscard]] std::string getPositionToString() const ;
+
+    [[maybe_unused]] [[nodiscard]] std::string getPositionToString() const ;
 };
 
 struct AStarNode : public Node {
@@ -41,8 +43,16 @@ namespace AStar {
     std::vector<Position> AStarSearch(const Position& start, const Position& goal, const std::shared_ptr<Grid> &tree, float step, float collisionThreshold = 3.5f);
 }
 
+// RRT 命名空间
 namespace RRT {
+    bool extendTree(const Position &random_position, std::unique_ptr<KDTree> &kdt, const std::shared_ptr<Grid> &grid_tree, std::vector<Point*>& point_ptrs,
+                              std::vector<int>& fa, std::unordered_map<Point*, int>& Ptr2id, float step_size, float collisionThreshold);
+
+    // 双向 RRT 规划
+    std::vector<Position> bidirectionalRRT(const Position &start, const Position &goal, const std::shared_ptr<Grid>& grid_tree, const Position& box_size,
+                                           float step_size, float goal_tolerance, float to_end_possibility, float collisionThreshold = 3.5, int max_trial = 10000);
 
 }
+
 
 #endif //ATOM_SEARCH_CPP_CURVE_H

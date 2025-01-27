@@ -3,11 +3,13 @@
 //
 
 #include "curve.h"
+#include <algorithm>
+#include <utility>
 #include "hash.h"
 
 Node::Node(Position pos, std::shared_ptr<Node> fa) : pos(std::move(pos)), fa(std::move(fa)) {}
 
-std::string Node::getPositionToString() const {
+[[maybe_unused]] std::string Node::getPositionToString() const {
     std::stringstream ss;
     ss << pos.format(Eigen::IOFormat(3, 0, ",", ",", "", "", "(", ")"));
     return ss.str();
@@ -95,3 +97,122 @@ std::vector<Position> AStar::AStarSearch(const Position& start, const Position& 
 
     return {};  // 没有找到路径
 }
+
+bool RRT::extendTree(const Position &random_position, std::unique_ptr<KDTree> &kdt, const std::shared_ptr<Grid> &grid_tree, std::vector<Point*>& point_ptrs,
+                     std::vector<int>& fa, std::unordered_map<Point*, int>& Ptr2id, float step_size, float collisionThreshold) {
+
+    Point random_point(random_position);
+    Point* nearest_point = kdt->find_nearest(&random_point);
+    Position nearest_position = nearest_point->to_vector3f();
+
+    // 计算新点
+    Vector direction = (random_position - nearest_position).normalized();
+    Position new_position = nearest_position + direction * step_size;
+
+    // 碰撞检测（这里假设没有障碍物）
+    if (!grid_tree->isCollision(new_position, collisionThreshold)) {
+        // 添加新节点
+        auto* new_point = new Point(new_position);
+        point_ptrs.push_back(new_point);
+        fa.push_back(Ptr2id[nearest_point]);
+
+        // 更新 KD-Tree
+        kdt->insert(new_point);
+        return true;
+    }
+    return false;
+}
+
+std::vector<Position> RRT::bidirectionalRRT(const Position &start, const Position &goal, const std::shared_ptr<Grid>& grid_tree, const Position& box_size,
+                                            float step_size, float goal_tolerance, float to_end_possibility, float collisionThreshold, int max_trial) {
+
+    auto kdt_start = std::make_unique<KDTree>(AABB(Point(0, 0, 0), Point(box_size)));
+    auto kdt_goal = std::make_unique<KDTree>(AABB(Point(0, 0, 0), Point(box_size)));
+
+    std::vector<Point*> point_ptrs_start = {new Point(start)};
+    std::vector<Point*> point_ptrs_goal = {new Point(goal)};
+
+    kdt_start->insert(point_ptrs_start[0]);
+    kdt_goal->insert(point_ptrs_goal[0]);
+
+    // 建立指针到下标的哈希映射
+    // 建立父节点表
+    std::unordered_map<Point*, int> Ptr2id_start = {{point_ptrs_start[0], 0}};
+    std::unordered_map<Point*, int> Ptr2id_goal = {{point_ptrs_goal[0], 0}};
+
+    std::vector<int> fa_start(1, -1);
+    std::vector<int> fa_goal(1, -1);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis0(0.0, box_size.x());
+    std::uniform_real_distribution<float> dis1(0.0, box_size.y());
+    std::uniform_real_distribution<float> dis2(0.0, box_size.z());
+    std::uniform_real_distribution<float> dis_possibility(0.0, 1.0);
+
+    for (int i = 0; i < max_trial; ++i) { // 最大迭代次数
+        auto random_position = Position(dis0(gen), dis1(gen), dis2(gen));
+        if (dis_possibility(gen) < to_end_possibility) {
+            random_position = goal;
+        }
+
+        if (extendTree(random_position, kdt_start, grid_tree, point_ptrs_start, fa_start, Ptr2id_start, step_size, collisionThreshold)) {
+            // 检查是否连接到目标树
+            auto* new_point = point_ptrs_start.back();
+            auto* nearest_point = kdt_goal->find_nearest(new_point);
+
+            if ((*new_point - *nearest_point).length() < goal_tolerance) {
+                // 找到路径
+                std::cout << "Path found!" << std::endl;
+                std::vector<Position> path;
+
+                int cur_idx = (int)point_ptrs_start.size() - 1;
+                while (cur_idx >= 0) {
+                    path.emplace_back(point_ptrs_start[cur_idx]->to_vector3f());
+                    cur_idx = fa_start[cur_idx];
+                }
+
+                std::reverse(path.begin(), path.end());
+
+                cur_idx = Ptr2id_goal[nearest_point];
+                while (cur_idx >= 0) {
+                    path.emplace_back(point_ptrs_goal[cur_idx]->to_vector3f());
+                    cur_idx = fa_goal[cur_idx];
+                }
+
+                if (point_ptrs_goal[0]->to_vector3f() == path.front()) {
+                    std::reverse(path.begin(), path.end());
+                }
+
+                // 析构
+                for (auto& ptr : point_ptrs_start) {
+                    delete ptr;
+                }
+                for (auto& ptr : point_ptrs_goal) {
+                    delete ptr;
+                }
+
+                return path;
+            }
+        }
+
+        // 交换
+        std::swap(kdt_start, kdt_goal);
+        std::swap(point_ptrs_start, point_ptrs_goal);
+        std::swap(Ptr2id_start, Ptr2id_goal);
+        std::swap(fa_start, fa_goal);
+    }
+
+    std::cout << "Path not found." << std::endl;
+
+    // 析构
+    for (auto& ptr : point_ptrs_start) {
+        delete ptr;
+    }
+    for (auto& ptr : point_ptrs_goal) {
+        delete ptr;
+    }
+
+    return {};
+}
+

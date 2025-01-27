@@ -248,7 +248,7 @@ void Graph::_bfs_process(int root, int fa, const std::function<Position(const Po
             if (visited.count(nxt)) continue;
             Position pos = getAtom(nxt)->getPosition();
             Position new_pos = f(pos, ver);
-            vertices[nxt]->moveTo(new_pos(0), new_pos(1), new_pos(2));
+            vertices[nxt]->moveTo(new_pos);
             q.emplace(nxt);
             visited.insert(nxt);
         }
@@ -256,7 +256,7 @@ void Graph::_bfs_process(int root, int fa, const std::function<Position(const Po
 
     Position pos = polys.back()->getPosition();
     Position new_pos = f(pos, ver);
-    polys.back()->moveTo(new_pos(0), new_pos(1), new_pos(2));
+    polys.back()->moveTo(new_pos);
 }
 
 void Graph::_make_end(const std::string& end_symbol, int poly_index, bool poly_delete) {
@@ -270,7 +270,7 @@ void Graph::_make_end(const std::string& end_symbol, int poly_index, bool poly_d
 
     Vector direct = atom::positionMinusPosition(poly_ptr->getPosition(), atom0_ptr->getPosition()).normalized() * BondTable::get_length(end_symbol, atom0_ptr->getSymbol(), "-");
     Position new_pos = atom0_ptr->getPosition() + direct;
-    auto atom1_ptr = std::make_shared<Atom>(end_symbol, new_pos(0), new_pos(1), new_pos(2));
+    auto atom1_ptr = std::make_shared<Atom>(end_symbol, new_pos.x(), new_pos.y(), new_pos.z());
     this->addAtom(atom1_ptr, mono_index);
     int cur = n - 1;
     addEdge(cur, poly_ptr->getNeigh(), end_symbol);

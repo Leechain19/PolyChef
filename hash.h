@@ -45,9 +45,9 @@ namespace hashing {
     template <typename T>
     struct eigen_vector_hash {
         std::size_t operator()(const Eigen::Vector<T, 3>& vec) const {
-            std::size_t h1 = std::hash<T>()(vec(0));
-            std::size_t h2 = std::hash<T>()(vec(1));
-            std::size_t h3 = std::hash<T>()(vec(2));
+            std::size_t h1 = std::hash<T>()(vec.x());
+            std::size_t h2 = std::hash<T>()(vec.y());
+            std::size_t h3 = std::hash<T>()(vec.z());
             return h1 ^ (h2 << 1) ^ (h3 << 2);
         }
     };
