@@ -24,7 +24,6 @@ std::pair<std::shared_ptr<Atom>, float> Grid::search_nn(const Position &point) {
     float min_dist = grid::inf;
     std::shared_ptr<Atom> ret_ptr{};
 
-    #pragma omp parallel for default(none), shared(xx, yy, zz, point, min_dist, ret_ptr)
     for (int i = xx - 1; i <= xx + 1; i ++ ) {
         for (int j = yy - 1; j <= yy + 1; j ++ ) {
             for (int k = zz - 1; k <= zz + 1; k ++) {
@@ -33,12 +32,9 @@ std::pair<std::shared_ptr<Atom>, float> Grid::search_nn(const Position &point) {
                 for (const auto &ptr : vec) {
                     auto p = ptr->getPosition();
                     auto cur_dist = atom::positionDistance(p, point);
-                    #pragma omp critical
-                    {
-                        if (cur_dist < min_dist) {
-                            min_dist = cur_dist;
-                            ret_ptr = ptr;
-                        }
+                    if (cur_dist < min_dist) {
+                        min_dist = cur_dist;
+                        ret_ptr = ptr;
                     }
                 }
             }

@@ -77,7 +77,6 @@ namespace de {
 
         void InitPopulation() {
             thread_local std::mt19937 thread_rng(rng());
-            #pragma omp parallel for default(none) shared(m_population, m_constraints) schedule(dynamic)
             for (unsigned int i = 0; i < m_populationSize; ++i) {
                 for (unsigned int j = 0; j < m_numberOfParameters; ++j) {
                     double lower = m_constraints[j].isConstrained ? m_constraints[j].lower :  -std::numeric_limits<double>::infinity();
@@ -87,15 +86,11 @@ namespace de {
                 }
             }
 
-            #pragma omp parallel for default(none) shared(m_population, m_minCostPerAgent, m_cost, m_minCost, m_bestAgentIndex) schedule(dynamic)
             for (int i = 0; i < m_populationSize; ++i) {
                 m_minCostPerAgent[i] = m_cost.EvaluateCost(m_population.row(i));
-                #pragma omp critical (update_min_cost)
-                {
-                    if (m_minCostPerAgent[i] < m_minCost) {
-                        m_minCost = m_minCostPerAgent[i];
-                        m_bestAgentIndex = i;
-                    }
+                if (m_minCostPerAgent[i] < m_minCost) {
+                    m_minCost = m_minCostPerAgent[i];
+                    m_bestAgentIndex = i;
                 }
             }
         }
@@ -103,18 +98,13 @@ namespace de {
         void SelectionAndCrossing() {
             Eigen::MatrixXd newPopulation = m_population;
 
-            #pragma omp parallel for default(none) shared(m_population, m_populationSize, m_numberOfParameters, m_F, m_CR, m_minCostPerAgent, m_cost, m_minCost, m_bestAgentIndex, newPopulation)\
-            schedule(dynamic)
             for (int x = 0; x < m_populationSize; ++x) {
                 for (int trial = 0; trial < max_trial; trial ++) {
                     bool updated = ProcessIndividual(x, newPopulation);
                     if (updated) {
-                        #pragma omp critical (update_best_agent)
-                        {
-                            if (m_minCostPerAgent[x] < m_minCost) {
-                                m_minCost = m_minCostPerAgent[x];
-                                m_bestAgentIndex = x;
-                            }
+                        if (m_minCostPerAgent[x] < m_minCost) {
+                            m_minCost = m_minCostPerAgent[x];
+                            m_bestAgentIndex = x;
                         }
                         break;
                     }
@@ -220,14 +210,10 @@ namespace de {
             // 计算新成本
             double newCost = m_cost.EvaluateCost(newX);
             if (newCost < m_minCostPerAgent[x]) {
-                #pragma omp critical (update_population)
-                {
-                    newPopulation.row(x).noalias() = newX;
-                    m_minCostPerAgent[x] = newCost;
-                }
+                newPopulation.row(x).noalias() = newX;
+                m_minCostPerAgent[x] = newCost;
                 return true;  // 更新成功
             }
-
             return false;  // 未更新
         }
 

@@ -3,6 +3,8 @@
 //
 #include "optimizer.h"
 
+#include <utility>
+
 Pointer::Pointer(int left, int right) : left(left), right(right) {}
 
 bool optimizer::EarlyTerminationFunction(const de::DifferentialEvolution& diffevo) {
@@ -50,7 +52,7 @@ float Optimizer::objective_fcn(float angle) {
     for (const auto& p : atoms_list) {
         auto vec = atom::positionMinusPosition(p, root_position);
         auto cur_position = root_position + R * vec;
-        cur_atoms.push_back(cur_position);
+        cur_atoms.emplace_back(cur_position);
         if (++ cur >= sz) break;
     }
 
@@ -98,7 +100,7 @@ double TargetFunction::EvaluateCost(const Eigen::VectorXd& inputs) const {
 
 float optimizer::optimize(std::shared_ptr<Optimizer>& opti_opt, std::vector<Position> atom_list, Position root_position_, Vector K_, bool verbose) {
     opti_opt->atoms_list = std::move(atom_list);
-    opti_opt->root_position = root_position_;
+    opti_opt->root_position = std::move(root_position_);
     opti_opt->K = std::move(K_);
 
     TargetFunction cost(opti_opt);
@@ -139,9 +141,8 @@ std::vector<de::IOptimizable::Constraints> TestFunction::GetConstraints() const 
 }
 
 float optimizer::testOptimize(bool verbose) {
-
     TestFunction cost;
-    de::DifferentialEvolution diffevo(cost, 32, EarlyTerminationFunction, 5);
+    de::DifferentialEvolution diffevo(cost, 15, EarlyTerminationFunction, 5);
     bool ok = diffevo.Optimize(1000, verbose);
 
     auto best_xs = diffevo.GetBestAgent();

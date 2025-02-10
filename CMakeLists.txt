@@ -44,3 +44,6 @@ add_executable(atom-search-cpp main.cpp atom.cpp chemio.cpp chemtable.cpp curve.
 
 target_include_directories(atom-search-cpp PRIVATE ${Python3_INCLUDE_DIRS})
 target_link_libraries(atom-search-cpp PRIVATE ${Python3_LIBRARIES} OpenMP::OpenMP_CXX kdtree)
+
+# 现在设置这个目标的输出名称
+set_target_properties(atom-search-cpp PROPERTIES OUTPUT_NAME "polychef")

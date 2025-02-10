@@ -4,14 +4,15 @@
 #include "grid.h"
 #include "chemio.h"
 #include "spreading.h"
+#include "cxxopts.hpp"
 #include "optimizer.h"
+#include "exception.h"
 #include <filesystem>
 #include <omp.h>
 #include <chrono>
 #include <iostream>
 #include <fstream>
 #include <ctime>
-#include <vector>
 
 #define STRINGIFY(x) (#x)
 
@@ -31,6 +32,7 @@ template<typename Head, typename... Tail> void debug_out(Head H, Tail... T) { st
 
 using json = nlohmann::json;
 constexpr int inf = 1e9;
+using Options = cxxopts::Options;
 
 bool startsWith(const std::string& s, const std::string& prefix) {
     if ((int)s.size() < (int)prefix.size()) return false;
@@ -190,19 +192,42 @@ void buildChainBasedCurve(const std::string& output_path, const std::vector<std:
     std::cout << "Finish!" << std::endl;
 }
 
-void solve() {
-    std::string cwd = std::filesystem::current_path();
-    std::cout << "Current working directory: " << cwd << std::endl;
-    std::string filename = cwd + "/../input.json";
-    std::ifstream file(filename);
+void InitializeOpenMP(int target_thread_num) {
+    std::cout << "Threads: " << target_thread_num << std::endl;
+//    omp_set_num_threads(target_thread_num);
+    Eigen::setNbThreads(target_thread_num);
+}
+
+// 读取配置
+bool read_config(json& config, const std::string& path) {
+    std::ifstream file(path);
     if (!file.is_open()) {
-        std::cerr << "JSON File open failure" << std::endl;
+        std::cerr << "Config file not found. Please run 'config' command first." << std::endl;
+        return false;
+    }
+    file >> config;
+    file.close();
+    return true;
+}
+
+// 保存配置
+bool save_config(const json& config, const std::string& path) {
+    std::ofstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Failed to save config." << std::endl;
+        return false;
+    }
+    file << config.dump(4); // 保存为格式化的 JSON
+    file.close();
+    std::cout << "Success! Config saved to " << path << std::endl;
+    return true;
+}
+
+void solve(const std::string& filename) {
+    json j;
+    if (!read_config(j, filename)) {
         return;
     }
-    std::cout << "Input file name: " << filename << std::endl;
-
-    json j;
-    file >> j;
 
     std::string polymer_type;
     readFromJSON(j, polymer_type, STRINGIFY(polymer_type));
@@ -210,6 +235,12 @@ void solve() {
 
     unsigned int seed = 114514;
     readFromJSON(j, seed, STRINGIFY(seed));
+
+    int threads = 1;
+    readFromJSON(j, threads, STRINGIFY(threads));
+
+    // OpenMP threads setting
+    InitializeOpenMP(threads);
 
     std::vector<int> box_size;
     readVectorFromJSON(j, box_size, STRINGIFY(box_size));
@@ -255,51 +286,90 @@ void solve() {
 void test() {
     std::string smi = "[*]CC[*]";
     auto mono_ptr = chemio::buildGraphFromPSmiles(smi);
-//    dbg("Raw:");
-//    dbg(*mono_ptr);
     auto start_mol = std::make_shared<Graph>();
 
     auto cur_mol = std::make_shared<Graph>(*mono_ptr);
     cur_mol->translation(10,10,10);
-
-//    dbg(*mono_ptr), dbg(*cur_mol);
-//    dbg(mono_ptr.get() == cur_mol.get());
-//    dbg(mono_ptr == cur_mol);
 }
 
-void InitializeOpenMP(int target_thread_num = 1) {
-    if (target_thread_num <= 1) {
+void config(int argc, char* argv[], const std::string& config_filename) {
+    Options options("polychef config", "Configure settings");
+    options.add_options()
+    ("t,threads", "Threads", cxxopts::value<int>())
+    ("o,output", "Output directory path", cxxopts::value<std::string>())
+    ("v,verbose", "Verbose", cxxopts::value<bool>())
+    ("i,info", "File info", cxxopts::value<std::string>())
+    ("h,help", "Show help");
+
+    auto result = options.parse(argc - 1, argv + 1);
+
+    if (result.count("help")) {
+        std::cout << options.help() << std::endl;
         return;
     }
-    omp_set_num_threads(target_thread_num);
-    Eigen::setNbThreads(target_thread_num);
 
-    // 使用 OpenMP 并行化
-    #pragma omp parallel default(none) shared(std::cout)
-    {
-        int thread_id = omp_get_thread_num();
-        int num_threads = omp_get_num_threads();
+    json config;
+    read_config(config, config_filename);
 
-        if (thread_id == 0) {
-        #pragma omp critical (output)
-            {
-                std::cout << "Started with " << num_threads << " threads." << std::endl;
-            }
-        }
+    if (result.count("threads")) {
+        config["threads"] = result["threads"].as<int>();
+        std::cout << "Threads number: " << config["threads"] << std::endl;
+    }
+
+    if (result.count("output")) {
+        config["output_directory_path"] = result["output"].as<std::string>();
+        std::cout << "Output directory path has been changed to: " << config["output_directory_path"] << std::endl;
+    }
+
+    if (result.count("verbose")) {
+        config["verbose"] = result["verbose"].as<bool>();
+        std::cout << "Verbose mode " << (config["verbose"] ? "enabled" : "disabled") << "." << std::endl;
+    }
+
+    if (result.count("info")) {
+        config["file_info"] = result["info"].as<std::string>();
+        std::cout << "File Info: " << config["file_info"] << std::endl;
+    }
+
+    if (save_config(config, config_filename)) {
+        std::cout << "Configure settings Finish!" << std::endl;
     }
 }
 
-int main() {
+void get_struct() {
 
-    InitializeOpenMP(4);
+}
 
-    auto start = std::chrono::high_resolution_clock::now(); // start time
-    solve();
-//    test();
-    auto end = std::chrono::high_resolution_clock::now(); // end time
+int main(int argc, char* argv[]) {
+    std::string cwd = std::filesystem::current_path();
+    std::cout << "Current working directory: " << cwd << std::endl;
+    std::string config_filename = cwd + "/../config.json";
 
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
+    if (argc < 2) {
+        std::cerr << "Usage: polychef <command> [options]\n"
+        << "Commands:\n"
+        << "  run     Run a task\n"
+        << ("  config  Configure settings in " + config_filename + "\n")
+        << "  struct  Generate a 3D structure for PSmiles\n";
+        return 1;
+    }
+
+    std::string command = argv[1];
+
+    if (command == "run") {
+        auto start = std::chrono::high_resolution_clock::now(); // start time
+        solve(config_filename);
+        auto end = std::chrono::high_resolution_clock::now(); // end time
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
+    }
+    else if (command == "config") {
+        config(argc, argv, config_filename);
+    }
+    else {
+        // 抛出异常
+        throw exception::InvalidParameterException("Unknown command: " + command);
+    }
 
     return 0;
 }

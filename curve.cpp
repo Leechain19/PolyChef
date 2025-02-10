@@ -28,13 +28,11 @@ float AStar::heuristic(const Position& start, const Position& goal) {
 std::vector<Position> AStar::getNeighbors(const Position &position, float step) {
     std::vector<Position> neighbors;
 
-    #pragma omp parallel for default(none), shared(neighbors, position, step)
     for (int dx = -1; dx <= 1; dx ++) {
         for (int dy = -1; dy <= 1; dy ++) {
             for (int dz = -1; dz <= 1; dz ++) {
                 if (dx == 0 && dy == 0 && dz == 0) continue;  // 跳过自身
                 Position neighbor = position + Vector((float)dx, (float)dy, (float)dz).normalized() * step;
-                #pragma omp critical
                 neighbors.emplace_back(neighbor);
             }
         }
@@ -77,21 +75,15 @@ std::vector<Position> AStar::AStarSearch(const Position& start, const Position& 
         }
 
         // 生成邻居节点
-        #pragma omp parallel for default(none), shared(start, goal, current, step, tree, allNodes, openSet, collisionThreshold)
         for (const auto& neighborPos : getNeighbors(current->pos, step)) {
             if (tree->isCollision(neighborPos, collisionThreshold)) continue;
 
             float next_cost = current->cost + step;
-
-            #pragma omp critical
-            {
-                if (allNodes.find(neighborPos) == allNodes.end() || next_cost < allNodes[neighborPos]->cost) {
-                    auto neighborNode = std::make_shared<AStarNode>(neighborPos, next_cost, heuristic(neighborPos, goal), current);
-                    openSet.push(neighborNode);
-                    allNodes[neighborPos] = neighborNode;
-                }
+            if (allNodes.find(neighborPos) == allNodes.end() || next_cost < allNodes[neighborPos]->cost) {
+                auto neighborNode = std::make_shared<AStarNode>(neighborPos, next_cost, heuristic(neighborPos, goal), current);
+                openSet.push(neighborNode);
+                allNodes[neighborPos] = neighborNode;
             }
-
         }
     }
 

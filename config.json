@@ -21,5 +21,6 @@
     "seed": 114514,
     "output_directory_path": "../data",
     "file_info": "NO_INFO",
-    "verbose": false
+    "verbose": false,
+    "threads": 4
 }
