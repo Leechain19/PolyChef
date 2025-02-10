@@ -194,8 +194,9 @@ void buildChainBasedCurve(const std::string& output_path, const std::vector<std:
 
 void InitializeOpenMP(int target_thread_num) {
     std::cout << "Threads: " << target_thread_num << std::endl;
+    std::cout << "Warning: only 1 thread use." << std::endl;
 //    omp_set_num_threads(target_thread_num);
-    Eigen::setNbThreads(target_thread_num);
+//    Eigen::setNbThreads(target_thread_num);
 }
 
 // 读取配置
