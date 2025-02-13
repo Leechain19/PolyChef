@@ -76,21 +76,22 @@ namespace de {
         }
 
         void InitPopulation() {
-            thread_local std::mt19937 thread_rng(rng());
+            #pragma omp parallel for
             for (unsigned int i = 0; i < m_populationSize; ++i) {
+                thread_local std::mt19937 thread_rng(rng());
                 for (unsigned int j = 0; j < m_numberOfParameters; ++j) {
                     double lower = m_constraints[j].isConstrained ? m_constraints[j].lower :  -std::numeric_limits<double>::infinity();
                     double upper = m_constraints[j].isConstrained ? m_constraints[j].upper :  std::numeric_limits<double>::infinity();
                     std::uniform_real_distribution<double> distribution(lower, upper);
                     m_population(i, j) = distribution(thread_rng);
                 }
-            }
-
-            for (int i = 0; i < m_populationSize; ++i) {
                 m_minCostPerAgent[i] = m_cost.EvaluateCost(m_population.row(i));
-                if (m_minCostPerAgent[i] < m_minCost) {
-                    m_minCost = m_minCostPerAgent[i];
-                    m_bestAgentIndex = i;
+                #pragma omp critical
+                {
+                    if (m_minCostPerAgent[i] < m_minCost) {
+                        m_minCost = m_minCostPerAgent[i];
+                        m_bestAgentIndex = i;
+                    }
                 }
             }
         }
@@ -98,13 +99,17 @@ namespace de {
         void SelectionAndCrossing() {
             Eigen::MatrixXd newPopulation = m_population;
 
+            #pragma omp parallel for
             for (int x = 0; x < m_populationSize; ++x) {
                 for (int trial = 0; trial < max_trial; trial ++) {
                     bool updated = ProcessIndividual(x, newPopulation);
                     if (updated) {
-                        if (m_minCostPerAgent[x] < m_minCost) {
-                            m_minCost = m_minCostPerAgent[x];
-                            m_bestAgentIndex = x;
+                        #pragma omp critical
+                        {
+                            if (m_minCostPerAgent[x] < m_minCost) {
+                                m_minCost = m_minCostPerAgent[x];
+                                m_bestAgentIndex = x;
+                            }
                         }
                         break;
                     }
@@ -129,7 +134,7 @@ namespace de {
             return result;
         }
 
-        void PrintPopulation() const {
+        [[maybe_unused]] void PrintPopulation() const {
             for (int i = 0; i < m_populationSize; ++i) {
                 for (int j = 0; j < m_numberOfParameters; ++j) {
                     std::cout << m_population(i, j) << " ";

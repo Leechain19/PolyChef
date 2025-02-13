@@ -49,10 +49,10 @@ target_include_directories(kdtree PRIVATE "${PROJECT_SOURCE_DIR}/kdtree")
 link_directories("/home/public/miniconda3/envs/develop/lib/python3.8/site-packages")
 #link_libraries("/home/public/miniconda3/envs/develop/lib/libpython3.8.so")
 
-add_executable(atom-search-cpp main.cpp atom.cpp chemio.cpp chemtable.cpp curve.cpp graph.cpp grid.cpp mathfunc.cpp spreading.cpp optimizer.cpp)
+add_executable(atom-search-cpp main.cpp atom.cpp chemio.cpp chemtable.cpp curve.cpp graph.cpp grid.cpp mathfunc.cpp spreading.cpp optimizer.cpp loadlib.cpp)
 
 target_include_directories(atom-search-cpp PRIVATE ${Python3_INCLUDE_DIRS})
-target_link_libraries(atom-search-cpp PRIVATE ${Python3_LIBRARIES} OpenMP::OpenMP_CXX kdtree)
+target_link_libraries(atom-search-cpp PRIVATE ${Python3_LIBRARIES} OpenMP::OpenMP_CXX kdtree dl)
 
 # 现在设置这个目标的输出名称
 set_target_properties(atom-search-cpp PROPERTIES OUTPUT_NAME "polychef")

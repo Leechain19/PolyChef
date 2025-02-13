@@ -104,7 +104,7 @@ float optimizer::optimize(std::shared_ptr<Optimizer>& opti_opt, std::vector<Posi
     opti_opt->K = std::move(K_);
 
     TargetFunction cost(opti_opt);
-    de::DifferentialEvolution diffevo(cost, 16, EarlyTerminationFunction, 1);
+    de::DifferentialEvolution diffevo(cost, 32, EarlyTerminationFunction, 1);
     bool ok = diffevo.Optimize(1000, false); // turns + verbose
 
     auto best_xs = diffevo.GetBestAgent();
@@ -142,7 +142,7 @@ std::vector<de::IOptimizable::Constraints> TestFunction::GetConstraints() const 
 
 float optimizer::testOptimize(bool verbose) {
     TestFunction cost;
-    de::DifferentialEvolution diffevo(cost, 15, EarlyTerminationFunction, 5);
+    de::DifferentialEvolution diffevo(cost, 32, EarlyTerminationFunction, 1);
     bool ok = diffevo.Optimize(1000, verbose);
 
     auto best_xs = diffevo.GetBestAgent();

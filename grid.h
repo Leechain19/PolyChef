@@ -13,18 +13,25 @@
 #include <unordered_map>
 #include <limits>
 #include <memory>
+#include <shared_mutex>
+#include <mutex>
 
 namespace grid {
     constexpr float inf = std::numeric_limits<float>::max();
 }
+
+struct GridCell {
+    std::vector<std::shared_ptr<Atom>> atoms;
+//    std::shared_mutex cell_rw_lock;
+};
 
 // A structure based on hashmap to maintain the positions of points for collision detection
 class Grid {
 private:
     float _interval;
     int _size;
-    std::unordered_map<std::array<int, 3>, std::vector<std::shared_ptr<Atom>>, hashing::array_hash<int, 3>> mp;
-
+    std::unordered_map<std::array<int, 3>, GridCell, hashing::array_hash<int, 3>> mp;
+//    std::shared_mutex global_rw_lock;
 public:
     explicit Grid(float interval = 5.0);
     virtual ~Grid();
