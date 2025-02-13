@@ -261,6 +261,10 @@ float atom::positionDistance(const Position& p1, const Position& p2) {
     return (p1 - p2).norm();
 }
 
+float atom::positionDistanceSquared(const Position& p1, const Position& p2) {
+    return (p1 - p2).squaredNorm();
+}
+
 Vector atom::positionMinusPosition(const Position& p1, const Position& p2) {
     return p1 - p2;
 }

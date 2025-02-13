@@ -141,6 +141,9 @@ std::vector<de::IOptimizable::Constraints> TestFunction::GetConstraints() const 
 }
 
 float optimizer::testOptimize(bool verbose) {
+    /*
+     *  这个是Test!!!!
+     */
     TestFunction cost;
     de::DifferentialEvolution diffevo(cost, 32, EarlyTerminationFunction, 1);
     bool ok = diffevo.Optimize(1000, verbose);

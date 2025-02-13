@@ -139,6 +139,7 @@ public:
 
 namespace atom {
     float positionDistance(const Position& p1, const Position& p2);
+    float positionDistanceSquared(const Position& p1, const Position& p2);
     Vector positionMinusPosition(const Position& p1, const Position& p2);
 }
 

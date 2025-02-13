@@ -38,10 +38,11 @@ public:
     [[nodiscard]] int _getpos(float x) const;
     [[nodiscard]] float interval() const;
     [[nodiscard]] int size() const;
-    std::pair<std::shared_ptr<Atom>, float> search_nn(const Position &point);
+    std::pair<std::shared_ptr<Atom>, float> search_nn(const Position &point, float collision_threshold = 2.5);
     void add(const Position &point, const std::string &symbol, bool including_hydrogen = true);
     void add(const std::shared_ptr<Atom>& atom_ptr, bool including_hydrogen = true);
-    void add_mol(const Graph& g, bool including_hydrogen = true);
+
+    [[maybe_unused]] void add_mol(const Graph& g, bool including_hydrogen = true);
     bool isCollision(const Position& point, float threshold);
 };
 
