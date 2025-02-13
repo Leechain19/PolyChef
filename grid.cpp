@@ -18,80 +18,52 @@ int Grid::size() const {
     return this->_size;
 }
 
-//std::pair<std::shared_ptr<Atom>, float> Grid::search_nn(const Position &point) {
-//    auto x = point[0], y = point[1], z = point[2];
-//    auto xx = _getpos(x), yy = _getpos(y), zz = _getpos(z);
-//    float min_dist = grid::inf;
-//    std::shared_ptr<Atom> ret_ptr;
-//
-//    std::vector<std::array<int, 3>> neigh_coords;
-//
-//    for (int i = xx - 1; i <= xx + 1; i ++ ) {
-//        for (int j = yy - 1; j <= yy + 1; j ++ ) {
-//            for (int k = zz - 1; k <= zz + 1; k ++) {
-//                neigh_coords.push_back({i, j, k});
-//            }
-//        }
-//    }
-//
-//    for (const auto& coord : neigh_coords) {
-//        auto it = mp.find(coord);
-//        if (it == mp.end()) continue;
-//        GridCell& cell = it->second;
-//
-//        for (const auto &ptr : cell.atoms) {
-//            auto p = ptr->getPosition();
-//            auto cur_dist = atom::positionDistance(p, point);
-//            if (cur_dist < min_dist) {
-//                min_dist = cur_dist;
-//                ret_ptr = ptr;
-//            }
-//        }
-//    }
-//    return std::make_pair(ret_ptr, min_dist);
-//}
-
 std::pair<std::shared_ptr<Atom>, float> Grid::search_nn(const Position &point, float collision_threshold) {
-    auto x = point[0], y = point[1], z = point[2];
-    auto xx = _getpos(x), yy = _getpos(y), zz = _getpos(z);
-    float min_dist_sq = std::numeric_limits<float>::max();
-    std::shared_ptr<Atom> ret_ptr;
+    auto xx = _getpos(point.x()), yy = _getpos(point.y()), zz = _getpos(point.z());
 
     // 预生成的27个偏移量
     static constexpr std::array<std::array<int, 3>, 27> offsets = {{
-        {-1, -1, -1}, {-1, -1, 0}, {-1, -1, 1},
-        {-1, 0, -1}, {-1, 0, 0}, {-1, 0, 1},
-        {-1, 1, -1}, {-1, 1, 0}, {-1, 1, 1},
-        {0, -1, -1}, {0, -1, 0}, {0, -1, 1},
-        {0, 0, -1}, {0, 0, 0}, {0, 0, 1},
-        {0, 1, -1}, {0, 1, 0}, {0, 1, 1},
-        {1, -1, -1}, {1, -1, 0}, {1, -1, 1},
-        {1, 0, -1}, {1, 0, 0}, {1, 0, 1},
-        {1, 1, -1}, {1, 1, 0}, {1, 1, 1}
+        {0, 0, 0},    {-1, 0, 0},  {0, -1, 0},
+        {0, 0, -1},   {1, 0, 0},   {0, 1, 0},
+        {0, 0, 1},    {-1, -1, 0}, {-1, 0, -1},
+        {-1, 0, 1},   {0, -1, 1},  {0, -1, -1},
+        {-1, 1, 0},   {0, 1, 1},   {0, 1, -1},
+        {1, -1, 0},   {1, 0, -1},  {1, 1, 0},
+        {1, 0, 1},    {-1, -1, 1}, {-1, 1, -1},
+        {-1, 1, 1},   {1, -1, -1}, {1, -1, 1},
+        {-1, -1, -1}, {1, 1, -1},  {1, 1, 1}
     }};
 
-    float collision_threshold_sq = collision_threshold * collision_threshold;
+    const float collision_threshold_sq = collision_threshold * collision_threshold;
+    float min_dist_sq = std::numeric_limits<float>::max();
+    std::shared_ptr<Atom> ret_ptr;
+
+    std::atomic<bool> failed = false;
 
     for (const auto& offset : offsets) {
-        std::array<int, 3> coord{xx + offset[0], yy + offset[1], zz + offset[2]};
-        auto it = mp.find(coord);
-        if (it == mp.end()) continue;
+        const std::array<int, 3> coord{xx + offset[0], yy + offset[1], zz + offset[2]};
+        const auto it = this->mp.find(coord);
+        if (it == this->mp.end()) continue;
 
         for (const auto& ptr : it->second.atoms) {
-            auto p = ptr->getPosition();
-            float dist_sq = atom::positionDistanceSquared(p, point);
+            // 使用 Eigen 的向量操作直接计算
+            const Eigen::Vector3f& p_eigen = ptr->getPosition();
+            const float dist_sq = atom::positionDistanceSquared(p_eigen, point);
+
             if (dist_sq < min_dist_sq) {
                 min_dist_sq = dist_sq;
                 ret_ptr = ptr;
-                if (min_dist_sq < collision_threshold_sq) break; // 提前终止
+                if (min_dist_sq < collision_threshold_sq) {
+                    failed = true;
+                    break;
+                }
             }
         }
-        if (min_dist_sq < collision_threshold_sq) break;
+        if (failed) break;
     }
 
-    return {ret_ptr, std::sqrt(min_dist_sq)};
+    return {ret_ptr, ret_ptr ? std::sqrt(min_dist_sq) : grid::inf};
 }
-
 
 void Grid::add(const Position &point, const std::string &symbol, bool including_hydrogen) {
     if (symbol.empty()) {

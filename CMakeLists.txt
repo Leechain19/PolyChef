@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.18)
 
 project(atom_search_cpp VERSION 1.0 LANGUAGES CXX)
 
+# 包含检测编译器支持的模块
+include(CheckCXXCompilerFlag)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -39,6 +42,9 @@ message(STATUS "Python3 Libraries: ${Python3_LIBRARIES}")
 
 # Eigen3
 include_directories("/usr/local/include/eigen3")
+
+# cuda
+#include_directories("/usr/local/cuda/include")
 
 # Add library
 add_library(kdtree STATIC
