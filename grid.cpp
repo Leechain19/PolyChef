@@ -88,12 +88,6 @@ void Grid::add(const std::shared_ptr<Atom>& atom_ptr, bool including_hydrogen) {
     _size += 1;
 }
 
-[[maybe_unused]] void Grid::add_mol(const Graph &g, bool including_hydrogen) {
-    for (const auto& ptr : g.getAtomVec()) {
-        add(ptr, including_hydrogen);
-    }
-}
-
 bool Grid::isCollision(const Position &point, float threshold) {
     return search_nn(point).second < threshold;
 }

@@ -30,7 +30,7 @@ std::shared_ptr<Graph> MolGenerator::getNext() {
     return copied_ptr;
 }
 
-const std::shared_ptr<Graph> &MolGenerator::getSequence(int index) const {
+std::shared_ptr<Graph> MolGenerator::getSequence(int index) const {
     return this->sequence[index];
 }
 
@@ -159,9 +159,10 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
 
     dfs(dfs, g->polyBack()->getNeigh());
 
+    progresscpp::ProgressBar progress_bar(degree_of_polymerization-1, 70);
     for (int epoch = 1; epoch < degree_of_polymerization; epoch ++) {
-        if (epoch % std::max(1, degree_of_polymerization / 20) == 0)
-            std::cout << "Epoch: " << epoch << "/" << degree_of_polymerization << '\n';
+//        if (epoch % std::max(1, degree_of_polymerization / 20) == 0)
+//            std::cout << "Epoch: " << epoch << "/" << degree_of_polymerization << '\n';
         auto cur_mol = mol_genrator_ptr->getNext();
 
         g->attract(cur_mol);
@@ -169,13 +170,17 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
 
         dfs(dfs, g->polyBack()->getNeigh());
         optimize_process(tree_index, optimize_atom_number);
+        ++ progress_bar;
+        progress_bar.display();
 
         if (pointer.left + 1 == pointer.right && pointer.right == (int)target_points.size() &&
         atom::positionMinusPosition(target_points.back(), g->getAtomPosition(g->polyBack()->getNeigh())).dot(atom::positionMinusPosition(g->getPolyPosition(1), g->getAtomPosition(g->polyBack()->getNeigh()))) <= 0) {
-            std::cout << "Early stop!" << std::endl;
+//            std::cout << "Early stop!" << std::endl;
             break;
         }
     }
+    progress_bar.done();
+    std::cout << "Finish!" << std::endl;
 
     optimize_process(tree_index, 3);
 }

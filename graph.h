@@ -10,6 +10,9 @@
 #include "hash.h"
 #include "mathfunc.h"
 #include "chemtable.h"
+#include "grid.h"
+#include "loadlib.h"
+#include "progresscpp/ProgressBar.hpp"
 #include <utility>
 #include <vector>
 #include <numeric>
@@ -20,6 +23,7 @@
 #include <Eigen/Dense>
 #include <cassert>
 #include <queue>
+#include <fstream>
 
 class DSU {
 private:
@@ -214,69 +218,5 @@ public:
 
     friend std::ostream& operator<<(std::ostream &os, const Graph &g);
 };
-
-class CrossLinker {
-public:
-    CrossLinker() = default;
-    CrossLinker(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> is_ar);
-    ~CrossLinker() = default;
-
-    CrossLinker(const CrossLinker& other);
-    CrossLinker(CrossLinker&& other) noexcept ;
-
-    CrossLinker& operator=(const CrossLinker &other);
-    CrossLinker& operator=(CrossLinker &&other) noexcept ;
-
-    [[nodiscard]] int size() const ;
-
-    [[nodiscard]] int getPolysSize() const;
-
-    [[nodiscard]] int getEdgesSize() const ;
-
-    [[nodiscard]] std::shared_ptr<Atom> getAtom(int index) const ;
-
-    [[nodiscard]] Position getAtomPosition(int index) const ;
-
-    [[nodiscard]] const std::vector<std::shared_ptr<Atom>>& getAtomVec() const;
-
-    [[nodiscard]] std::shared_ptr<Poly> getPoly(int index) const ;
-
-    [[nodiscard]] Position getPolyPosition(int index) const ;
-
-    [[nodiscard]] const std::vector<std::shared_ptr<Poly>>& getPolyVec() const;
-
-    void addAtom(std::shared_ptr<Atom> atom_ptr, int mono, bool ar = false);
-
-    void addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono, bool ar = false);
-
-    void addEdge(int from, int to, const std::string& type);
-
-    [[nodiscard]] bool isAr(int index) const;
-
-    [[nodiscard]] const std::vector<int>& getArVec() const;
-
-    [[nodiscard]] const std::vector<std::shared_ptr<Edge>>& getEdge(int index) const;
-
-    [[nodiscard]] const std::vector<std::vector<std::shared_ptr<Edge>>>& getEdgeVec() const;
-
-    friend std::ostream& operator<<(std::ostream& os, const CrossLinker& cl);
-
-private:
-    int n{};
-    std::vector<std::shared_ptr<Atom>> vertices;
-    std::vector<std::vector<std::shared_ptr<Edge>>> edges;
-    std::vector<std::shared_ptr<Poly>> polys;
-    std::vector<int> is_ar;
-};
-
-
-class CrosslinkingSystem {
-public:
-
-};
-
-
-
-
 
 #endif //ATOM_SEARCH_CPP_GRAPH_H

@@ -10,6 +10,7 @@
 #include "grid.h"
 #include "mathfunc.h"
 #include "chemtable.h"
+#include "progresscpp/ProgressBar.hpp"
 #include <queue>
 #include <Eigen/Dense>
 #include <vector>
@@ -28,7 +29,7 @@ protected:
 public:
     MolGenerator(std::vector<std::shared_ptr<Graph>> sequence, bool is_random, unsigned int seed = 0x9A3F7B1C);
     virtual ~MolGenerator() = default;
-    [[nodiscard]] const std::shared_ptr<Graph>& getSequence(int index) const;
+    [[nodiscard]] std::shared_ptr<Graph> getSequence(int index) const;
     virtual std::shared_ptr<Graph> getNext();
 };
 

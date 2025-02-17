@@ -196,8 +196,6 @@ void buildSystemWithScatter(const std::string& path, const std::vector<std::stri
     auto tree = std::make_shared<Grid>(5.0);
     int string_number = target_points_paths.size();
 
-    auto start = std::chrono::high_resolution_clock::now(); // start time
-
     for (int i = 0; i < string_number; i ++) {
         std::vector<Position> target_points = getScatterFromCSV(target_points_paths[i]);
         std::cout << std::string(50, '=') << std::endl;
@@ -214,9 +212,6 @@ void buildSystemWithScatter(const std::string& path, const std::vector<std::stri
         chemio::writeMol2File(file_path, g_ptr, file_info);
         std::cout << std::string(50, '=') << std::endl;
     }
-    auto end = std::chrono::high_resolution_clock::now(); // end time
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
 }
 
 
@@ -256,6 +251,9 @@ bool read_config(json& config, const std::string& path) {
     if (!file.is_open()) {
         std::cerr << "Config file not found. Please run 'config' command first." << std::endl;
         return false;
+    }
+    if (file.fail()) {
+        throw std::runtime_error("config file is corrupted");
     }
     file >> config;
     file.close();
@@ -438,11 +436,11 @@ int main(int argc, char* argv[]) {
     std::string command = argv[1];
 
     if (command == "run") {
-//        auto start = std::chrono::high_resolution_clock::now(); // start time
+        auto start = std::chrono::high_resolution_clock::now(); // start time
         solve(config_filename);
-//        auto end = std::chrono::high_resolution_clock::now(); // end time
-//        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-//        std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
+        auto end = std::chrono::high_resolution_clock::now(); // end time
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
     }
     else if (command == "config") {
         config(argc, argv, config_filename);
