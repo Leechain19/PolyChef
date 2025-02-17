@@ -46,15 +46,15 @@ include_directories("/usr/local/include/eigen3")
 # cuda
 #include_directories("/usr/local/cuda/include")
 
-# Add library
-add_library(kdtree STATIC
-        ${CMAKE_SOURCE_DIR}/kdtree/kdtree.cpp
-        ${CMAKE_SOURCE_DIR}/kdtree/kdtree.hpp
-        ${CMAKE_SOURCE_DIR}/kdtree/point.hpp
-        ${CMAKE_SOURCE_DIR}/kdtree/aabb.cpp
-        ${CMAKE_SOURCE_DIR}/kdtree/aabb.hpp
-        )
-target_include_directories(kdtree PRIVATE "${PROJECT_SOURCE_DIR}/kdtree")
+# kdtree
+#add_library(kdtree STATIC
+#        ${CMAKE_SOURCE_DIR}/kdtree/kdtree.cpp
+#        ${CMAKE_SOURCE_DIR}/kdtree/kdtree.hpp
+#        ${CMAKE_SOURCE_DIR}/kdtree/point.hpp
+#        ${CMAKE_SOURCE_DIR}/kdtree/aabb.cpp
+#        ${CMAKE_SOURCE_DIR}/kdtree/aabb.hpp
+#        )
+#target_include_directories(kdtree PRIVATE "${PROJECT_SOURCE_DIR}/kdtree")
 
 # Python 库文件
 link_directories("/home/public/miniconda3/envs/develop/lib/python3.8/site-packages")
@@ -63,7 +63,7 @@ link_directories("/home/public/miniconda3/envs/develop/lib/python3.8/site-packag
 add_executable(atom-search-cpp main.cpp atom.cpp chemio.cpp chemtable.cpp curve.cpp graph.cpp grid.cpp mathfunc.cpp spreading.cpp optimizer.cpp loadlib.cpp crosslinker.cpp)
 
 target_include_directories(atom-search-cpp PRIVATE ${Python3_INCLUDE_DIRS})
-target_link_libraries(atom-search-cpp PRIVATE ${Python3_LIBRARIES} OpenMP::OpenMP_CXX kdtree dl)
+target_link_libraries(atom-search-cpp PRIVATE ${Python3_LIBRARIES} OpenMP::OpenMP_CXX dl)
 
 # 现在设置这个目标的输出名称
 set_target_properties(atom-search-cpp PROPERTIES OUTPUT_NAME "polychef")

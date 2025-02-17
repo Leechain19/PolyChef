@@ -10,6 +10,7 @@
 #include "atom.h"
 #include "exception.h"
 #include "graph.h"
+#include "curve.h"
 
 class CrossLinker {
 public:

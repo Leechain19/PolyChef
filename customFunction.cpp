@@ -37,6 +37,19 @@ extern "C" {
     bool customFunction(const Eigen::Vector3f& point) {
         return inZ(point);
     }
+
+    int xmin() { return 0;}
+
+    int xmax() { return 50; }
+
+    int ymin() { return 0; }
+
+    int ymax() { return 50; }
+
+    int zmin() { return 0; }
+
+    int zmax() { return 20; }
+
 }
 
 // 编译命令: g++ -shared -fPIC -I/usr/local/include/eigen3 -O3 -march=native -o libcustomFunction.so customFunction.cpp

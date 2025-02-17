@@ -76,7 +76,7 @@ std::shared_ptr<Atom> CrossLinker::getAtom(int index) const {
     if (index < 0 || index >= n) {
         throw exception::InvalidParameterException("(CrossLinker.getAtom) Index exceeds bound");
     }
-    return this->vertices[index];
+    return this->vertices.at(index);
 }
 
 Position CrossLinker::getAtomPosition(int index) const {
@@ -92,7 +92,7 @@ std::shared_ptr<Poly> CrossLinker::getPoly(int index) const {
     if (index < 0 || index >= getPolysSize()) {
         throw exception::InvalidParameterException("(CrossLinker.getPoly) Index exceeds bound");
     }
-    return this->polys[index];
+    return this->polys.at(index);
 }
 
 Position CrossLinker::getPolyPosition(int index) const {
@@ -231,5 +231,21 @@ bool CrosslinkingSystem::calcChainGraphs(const std::array<int, 4>& e, const Cust
     if (sequence.empty()) {
         throw exception::InvalidParameterException("CorsslinkingSystem::calcChainGraphs: empty sequence");
     }
+    // do something
+    std::cout << "Calculating the paths:" << std::endl;
+    auto [cid1, cpid1, cid2, cpid2] = e;
+    assert(!poly_seen_[cid1][cpid1] && !poly_seen_[cid2][cpid2]);
+
+    auto position1 = crosslink_graphs_.at(cid1)->getPolyPosition(cpid1);
+    auto position2 = crosslink_graphs_.at(cid2)->getPolyPosition(cpid2);
+
+    std::cout << "Starting RRT Algo..." << std::endl;
+
+
+
+
+
     return false;
 }
+
+

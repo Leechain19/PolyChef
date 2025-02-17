@@ -15,6 +15,8 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include "curve.h"
+
 
 #define STRINGIFY(x) (#x)
 
@@ -333,15 +335,6 @@ void solve(const std::string& filename) {
     }
 }
 
-void test() {
-    std::string smi = "[*]CC[*]";
-    auto mono_ptr = chemio::buildGraphFromPSmiles(smi);
-    auto start_mol = std::make_shared<Graph>();
-
-    auto cur_mol = std::make_shared<Graph>(*mono_ptr);
-    cur_mol->translation(10,10,10);
-}
-
 void config(int argc, char* argv[], const std::string& config_filename) {
     Options options("polychef config", "Configure settings");
     options.add_options()
@@ -420,6 +413,25 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     }
 }
 
+void test() {
+    auto tree = std::make_shared<Grid>();
+    Position start(0, 0, 0);
+    Position goal(3, 5, 7);
+    std::string lib = "../libcustomFunction.so";
+
+    CustomFunctionLoader cfl(lib);
+
+    auto path = RRT::bidirectionalRRT(start, goal, tree, cfl, 0.5, 0.5, 0.3);
+
+//    auto path = AStar::AStarSearch(start, goal, tree, 0.5);
+
+    for (const auto& x : path) {
+        std::cout << x << std::endl;
+    }
+
+
+}
+
 int main(int argc, char* argv[]) {
     std::string cwd = std::filesystem::current_path();
     std::cout << "Current working directory: " << cwd << std::endl;
@@ -449,6 +461,8 @@ int main(int argc, char* argv[]) {
         // 抛出异常
         throw exception::InvalidParameterException("Unknown command: " + command);
     }
+
+//test();
 
     return 0;
 }
