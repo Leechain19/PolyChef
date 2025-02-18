@@ -48,6 +48,55 @@ std::vector<std::vector<std::variant<long, double, std::string>>> chemio::extrac
     return result;
 }
 
+std::shared_ptr<Graph> chemio::PyInfoConvertToGraph(
+        const std::vector<std::vector<std::variant<long, double, std::string>>> &atoms_vec,
+        const std::vector<std::vector<std::variant<long, double, std::string>>> &edges_vec,
+        const std::vector<std::vector<std::variant<long, double, std::string>>> &polys_vec,
+        const std::vector<std::vector<std::variant<long, double, std::string>>> &ring_edges_vec
+        ) {
+    auto g = std::make_shared<Graph>();
+
+    // atoms
+    for (const auto& vec : atoms_vec) {
+        std::string name = std::get<std::string>(vec[0]);
+        float x = static_cast<float>(std::get<double>(vec[1]));
+        float y = static_cast<float>(std::get<double>(vec[2]));
+        float z = static_cast<float>(std::get<double>(vec[3]));
+        bool ar = static_cast<bool>(std::get<long>(vec[4]));
+        g->addAtom(std::make_shared<Atom>(name, x, y, z), 0, ar);
+    }
+
+    // edges
+
+    for (const auto& vec : edges_vec) {
+        int x = static_cast<int>(std::get<long>(vec[0]));
+        int y = static_cast<int>(std::get<long>(vec[1]));
+        std::string type = std::get<std::string>(vec[2]);
+        g->addEdge(x, y, type);
+        g->addEdge(y, x, type);
+    }
+
+    // polys
+    for (const auto& vec : polys_vec) {
+        int who = static_cast<int>(std::get<long>(vec[0]));
+        float x = static_cast<float>(std::get<double>(vec[1]));
+        float y = static_cast<float>(std::get<double>(vec[2]));
+        float z = static_cast<float>(std::get<double>(vec[3]));
+        g->addPoly(x, y, z, who);
+    }
+
+    // ring
+    for (const auto& vec : ring_edges_vec) {
+        int x = static_cast<int>(std::get<long>(vec[0]));
+        int y = static_cast<int>(std::get<long>(vec[1]));
+        g->addRingEdge(x, y);
+    }
+
+    g->calMainChain();
+
+    return g;
+}
+
 std::shared_ptr<Graph> chemio::buildGraphFromPSmiles(const std::string& psmiles) {
     if (psmiles.empty()) {
         throw exception::InvalidParameterException("The psmiles string is empty");
@@ -64,7 +113,6 @@ std::shared_ptr<Graph> chemio::buildGraphFromPSmiles(const std::string& psmiles)
     std::cout << "smi = " << smi << std::endl;
 
     // Py
-
     Py_Initialize();
     if (!Py_IsInitialized()) {
         std::cerr << "Python initialization failed" << std::endl;
@@ -78,15 +126,15 @@ std::shared_ptr<Graph> chemio::buildGraphFromPSmiles(const std::string& psmiles)
 
     if (!module) {
         PyErr_Print();
-        std::cerr << "Failed to load module 'rdkit_helper'" << std::endl;
+        std::cerr << "Failed to load module 'rdkit_helper.py'" << std::endl;
         Py_Finalize();
         return nullptr;
     }
 
-    PyObject* func = PyObject_GetAttrString(module, "rdhelper");
+    PyObject* func = PyObject_GetAttrString(module, "read_smi");
     if (!func || !PyCallable_Check(func)) {
         PyErr_Print();
-        std::cerr << "Failed to load function 'rdhelper'" << std::endl;
+        std::cerr << "Failed to load function 'read_smi'" << std::endl;
         Py_DECREF(module);
         Py_Finalize();
         return nullptr;
@@ -133,55 +181,84 @@ std::shared_ptr<Graph> chemio::buildGraphFromPSmiles(const std::string& psmiles)
     Py_DECREF(func);
     Py_DECREF(module);
 
-//    std::cout << "Python Finish!" << std::endl;
+    return PyInfoConvertToGraph(atoms_vec, edges_vec, polys_vec, ring_edges_vec);
+}
 
-    auto g = std::make_shared<Graph>();
-
-    // atoms
-    for (const auto& vec : atoms_vec) {
-        std::string name = std::get<std::string>(vec[0]);
-        float x = static_cast<float>(std::get<double>(vec[1]));
-        float y = static_cast<float>(std::get<double>(vec[2]));
-        float z = static_cast<float>(std::get<double>(vec[3]));
-        bool ar = static_cast<bool>(std::get<long>(vec[4]));
-
-        g->addAtom(std::make_shared<Atom>(name, x, y, z), 0, ar);
+std::shared_ptr<Graph> chemio::buildGraphFromMol2(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        throw exception::IllegalStringException("buildGraphFromMol2: Illegal Mol2 Path");
     }
 
-//    std::cout << "Atom Finish!" << std::endl;
-
-    // edges
-
-    for (const auto& vec : edges_vec) {
-        int x = static_cast<int>(std::get<long>(vec[0]));
-        int y = static_cast<int>(std::get<long>(vec[1]));
-        std::string type = std::get<std::string>(vec[2]);
-
-        g->addEdge(x, y, type);
-        g->addEdge(y, x, type);
+    // Py
+    Py_Initialize();
+    if (!Py_IsInitialized()) {
+        std::cerr << "Python initialization failed" << std::endl;
+        return nullptr;
     }
-//    std::cout << "Edge Finish!" << std::endl;
 
-    // polys
-    for (const auto& vec : polys_vec) {
-        int who = static_cast<int>(std::get<long>(vec[0]));
-        float x = static_cast<float>(std::get<double>(vec[1]));
-        float y = static_cast<float>(std::get<double>(vec[2]));
-        float z = static_cast<float>(std::get<double>(vec[3]));
-        g->addPoly(x, y, z, who);
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString("sys.path.append('./../script')");
+
+    PyObject* module = PyImport_ImportModule("rdkit_helper");
+
+    if (!module) {
+        PyErr_Print();
+        std::cerr << "Failed to load module 'rdkit_helper'" << std::endl;
+        Py_Finalize();
+        return nullptr;
     }
-//    std::cout << "Poly Finish!" << std::endl;
 
-    // ring
-    for (const auto& vec : ring_edges_vec) {
-        int x = static_cast<int>(std::get<long>(vec[0]));
-        int y = static_cast<int>(std::get<long>(vec[1]));
-        g->addRingEdge(x, y);
+    PyObject* func = PyObject_GetAttrString(module, "read_mol2");
+    if (!func || !PyCallable_Check(func)) {
+        PyErr_Print();
+        std::cerr << "Failed to load function 'read_mol2'" << std::endl;
+        Py_DECREF(module);
+        Py_Finalize();
+        return nullptr;
     }
-//    std::cout << "Ring Finish!" << std::endl;
 
-    g->calMainChain();
-    return g;
+    PyObject* args = PyTuple_New(1);
+    PyTuple_SET_ITEM(args, 0, Py_BuildValue("s", path.c_str()));
+
+    PyObject* result = PyObject_CallObject(func, args);
+    if (!result) {
+        PyErr_Print();
+        std::cerr << "Function call failed" << std::endl;
+        Py_DECREF(func);
+        Py_DECREF(module);
+        Py_Finalize();
+        return nullptr;
+    }
+
+    // 检查返回值是否为元组
+    if (!PyTuple_Check(result)) {
+        std::cerr << "Function did not return a tuple" << std::endl;
+        Py_DECREF(result);
+        Py_DECREF(func);
+        Py_DECREF(module);
+        Py_Finalize();
+        return nullptr;
+    }
+
+    // 提取返回的 4 个列表
+    PyObject* atoms_cache = PyTuple_GetItem(result, 0);
+    PyObject* edges_cache = PyTuple_GetItem(result, 1);
+    PyObject* polys_cache = PyTuple_GetItem(result, 2);
+    PyObject* ring_edges_cache = PyTuple_GetItem(result, 3);
+
+    // 转换为 C++ 数据结构
+    std::vector<std::vector<std::variant<long, double, std::string>>> atoms_vec = chemio::extract_list(atoms_cache);
+    std::vector<std::vector<std::variant<long, double, std::string>>> edges_vec = chemio::extract_list(edges_cache);
+    std::vector<std::vector<std::variant<long, double, std::string>>> polys_vec = chemio::extract_list(polys_cache);
+    std::vector<std::vector<std::variant<long, double, std::string>>> ring_edges_vec = chemio::extract_list(ring_edges_cache);
+
+    // 清理资源
+    Py_DECREF(args);
+    Py_DECREF(result);
+    Py_DECREF(func);
+    Py_DECREF(module);
+
+    return PyInfoConvertToGraph(atoms_vec, edges_vec, polys_vec, ring_edges_vec);
 }
 
 std::string chemio::getAtomType(const std::string& name, int bond_num, bool ar) {

@@ -417,22 +417,10 @@ void config(int argc, char* argv[], const std::string& config_filename) {
 }
 
 void test() {
-    auto tree = std::make_shared<Grid>();
-    Position start(0, 0, 0);
-    Position goal(3, 5, 7);
-    std::string lib = "../libcustomFunction.so";
+    const std::string path = "../inputs/test_mol.mol2";
+    auto g_ptr = chemio::buildGraphFromMol2(path);
 
-    CustomFunctionLoader cfl(lib);
-
-    auto path = RRT::bidirectionalRRT(start, goal, tree, cfl, 0.5, 0.5, 0.3);
-
-//    auto path = AStar::AStarSearch(start, goal, tree, 0.5);
-
-    for (const auto& x : path) {
-        std::cout << x << std::endl;
-    }
-
-
+    std::cout << *g_ptr << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -465,7 +453,7 @@ int main(int argc, char* argv[]) {
         throw exception::InvalidParameterException("Unknown command: " + command);
     }
 
-//test();
+//    test();
 
     return 0;
 }

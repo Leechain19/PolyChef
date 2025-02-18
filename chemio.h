@@ -15,13 +15,22 @@
 #include <Python.h>
 #include <variant>
 #include <any>
+#include <filesystem>
 
 namespace chemio {
     std::variant<long, double, std::string> convertPyObject(PyObject* obj);
     std::vector<std::variant<long, double, std::string>> extract_tuple(PyObject* tuple);
     std::vector<std::vector<std::variant<long, double, std::string>>> extract_list(PyObject* list);
 
+    std::shared_ptr<Graph> PyInfoConvertToGraph(
+            const std::vector<std::vector<std::variant<long, double, std::string>>> &atoms_vec,
+            const std::vector<std::vector<std::variant<long, double, std::string>>> &edges_vec,
+            const std::vector<std::vector<std::variant<long, double, std::string>>> &polys_vec,
+            const std::vector<std::vector<std::variant<long, double, std::string>>> &ring_edges_vec
+                                                );
     std::shared_ptr<Graph> buildGraphFromPSmiles(const std::string& psmiles);
+    std::shared_ptr<Graph> buildGraphFromMol2(const std::string& path);
+
     std::string getAtomType(const std::string& name, int bond_num, bool ar = false);
     void writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::shared_ptr<Graph>& g, const std::string& file_info);
     void writeLoss2File(const std::string& loss_file_name, const std::unique_ptr<std::vector<std::pair<double, double>>>& loss_vec_ptr);
