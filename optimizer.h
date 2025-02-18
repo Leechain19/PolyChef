@@ -31,6 +31,7 @@ public:
 
     Optimizer(float LJ_weight, std::shared_ptr<Grid> tree, const std::vector<Position>& target_points, const Pointer& pointer, int cal_len);
 
+    std::pair<float, float> objective_fcn_pair(float angle);
     float objective_fcn(float angle);
 };
 

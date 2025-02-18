@@ -41,11 +41,11 @@ bool optimizer::EarlyTerminationFunction(const de::DifferentialEvolution& diffev
 Optimizer::Optimizer(float LJ_weight, std::shared_ptr<Grid> tree, const std::vector<Position>& target_points, const Pointer& pointer, int cal_len) :
 LJ_weight(LJ_weight), tree(std::move(tree)), target_points(target_points), pointer(pointer), cal_len(cal_len) {}
 
-float Optimizer::objective_fcn(float angle) {
+std::pair<float, float> Optimizer::objective_fcn_pair(float angle) {
     auto R = rodrigues(K, angle);
     int sz = std::min((int)atoms_list.size(), cal_len);
     if (!sz) {
-        return 0.0f;
+        return {0.0f, 0.0f};
     }
     std::vector<Position> cur_atoms;
     int cur = 0;
@@ -74,8 +74,12 @@ float Optimizer::objective_fcn(float angle) {
         const float sigma = 3.5f;
         lj += LJ_weight * static_cast<float>(pow(sigma / min_dist, 6));
     }
+    return {val / (float)sz, lj / (float)sz};
+}
 
-    return (val + lj) / (float)sz;
+float Optimizer::objective_fcn(float angle) {
+    auto [val, lj] = objective_fcn_pair(angle);
+    return val + lj;
 }
 
 TargetFunction::TargetFunction(std::shared_ptr<Optimizer> ptr) : opti_ptr(std::move(ptr)) {}

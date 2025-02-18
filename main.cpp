@@ -193,7 +193,7 @@ std::vector<Position> getScatterFromCSV(const std::string& path, bool header = t
 }
 
 void buildSystemWithScatter(const std::string& path, const std::vector<std::string>& target_points_paths, const std::vector<std::shared_ptr<Graph>>& sequence,
-                            int degree_of_polymerization, bool random_polymerization = false, int optimize_size = 1, bool verbose = false, const std::string& file_info = "NO_INFO") {
+                            int degree_of_polymerization, bool random_polymerization = false, int optimize_size = 1, bool verbose = false, double bad_signal_cost = 10000.0, const std::string& file_info = "NO_INFO") {
     std::cout << "Build System..." << std::endl;
     auto tree = std::make_shared<Grid>(5.0);
     int string_number = target_points_paths.size();
@@ -203,15 +203,18 @@ void buildSystemWithScatter(const std::string& path, const std::vector<std::stri
         std::cout << std::string(50, '=') << std::endl;
         std::cout << "String ID: " << i << std::endl;
 
-        std::string file_path = path + "/string_" + std::to_string(i) + ".mol2";
-        std::cout << "Path: " << file_path << std::endl;
+        std::string file_name = path + "/string_" + std::to_string(i) + ".mol2";
+        std::string adj_file_name = path + "/string_" + std::to_string(i) + "_adj";
+        std::string loss_file_name = path + "/string_" + std::to_string(i) + "_loss";
+        std::cout << "Path: " << path << std::endl;
 
         auto g_ptr = std::make_shared<Graph>();
-
-        curveSpreading(target_points, g_ptr, tree, sequence, degree_of_polymerization, 5.0f, 5, random_polymerization, optimize_size, verbose);
+        auto loss_vector_ptr = std::make_unique<std::vector<std::pair<double, double>>>();
+        curveSpreading(target_points, g_ptr, tree, sequence, degree_of_polymerization, 5.0f, 5, random_polymerization, optimize_size, verbose, bad_signal_cost, loss_vector_ptr);
 
         g_ptr->makeEnd("H");
-        chemio::writeMol2File(file_path, g_ptr, file_info);
+        chemio::writeMol2File(file_name, adj_file_name, g_ptr, file_info);
+        chemio::writeLoss2File(loss_file_name, loss_vector_ptr);
         std::cout << std::string(50, '=') << std::endl;
     }
 }
@@ -236,7 +239,7 @@ void buildChainBasedCurve(const std::string& output_path, const std::vector<std:
 
     createDirectory(saving_dir);
 
-    buildSystemWithScatter(saving_dir, chain_curve_list, sequence, degree_of_polymerization, random_polymerization, optimize_size, verbose, file_info);
+    buildSystemWithScatter(saving_dir, chain_curve_list, sequence, degree_of_polymerization, random_polymerization, optimize_size, verbose, 10000.0, file_info);
     std::cout << "Finish!" << std::endl;
 }
 

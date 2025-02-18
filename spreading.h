@@ -16,6 +16,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <utility>
 
 class MolGenerator {
 private:
@@ -44,7 +45,8 @@ public:
 };
 
 void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<Graph> g, std::shared_ptr<Grid> tree, const std::vector<std::shared_ptr<Graph>>& sequence,
-                    int degree_of_polymerization, float window_distance = 5.0f, int optimize_atom_number = 5, bool random_polymerization = false, int optimize_size = 1, bool verbose = false);
+                    int degree_of_polymerization, float window_distance = 5.0f, int optimize_atom_number = 5, bool random_polymerization = false, int optimize_size = 1,
+                    bool verbose = false, double bad_cost = 10000.0, const std::unique_ptr<std::vector<std::pair<double, double>>>& loss_vector_ptr = nullptr);
 
 
 

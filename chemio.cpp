@@ -231,10 +231,10 @@ std::string chemio::getAtomType(const std::string& name, int bond_num, bool ar) 
     return name;
 }
 
-void chemio::writeMol2File(const std::string& path, const std::shared_ptr<Graph>& g, const std::string& file_info) {
-    std::ofstream outFile(path);
+void chemio::writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::shared_ptr<Graph>& g, const std::string& file_info) {
+    std::ofstream outFile(file_name);
     if (!outFile.is_open()) {
-        std::cerr << "Error to open" << path << std::endl;
+        std::cerr << "Error to open" << file_name << std::endl;
         return;
     }
     outFile << "###" << std::endl;
@@ -277,7 +277,6 @@ void chemio::writeMol2File(const std::string& path, const std::shared_ptr<Graph>
     }
     outFile.close();
 
-    std::string adj_file_name = path.substr(0, (int)size(path) - 5) + "_adj";
     std::ofstream outFileAdj(adj_file_name);
     for (int i = 0; i < g->size(); i ++) {
         std::string s = std::to_string(i + 1);
@@ -290,6 +289,22 @@ void chemio::writeMol2File(const std::string& path, const std::shared_ptr<Graph>
     }
     outFileAdj.close();
 
-    std::cout << "The file named " << path << " has been finished" << std::endl;
+    std::cout << "The file named " << file_name << " has been finished" << std::endl;
     std::cout << "The file named " << adj_file_name << " has been finished" << std::endl;
+}
+
+void chemio::writeLoss2File(const std::string& loss_file_name, const std::unique_ptr<std::vector<std::pair<double, double>>>& loss_vec_ptr) {
+    std::ofstream outFile(loss_file_name);
+    if (!outFile.is_open()) {
+        std::cerr << "Error to open" << loss_file_name << std::endl;
+        return;
+    }
+
+    for (const auto& p : *loss_vec_ptr) {
+        outFile << p.first << ' ' << p.second << '\n';
+    }
+    outFile << std::endl;
+    outFile.close();
+
+    std::cout << "The file named " << loss_file_name << " has been finished" << std::endl;
 }
