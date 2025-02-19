@@ -11,6 +11,7 @@
 #include "exception.h"
 #include "graph.h"
 #include "curve.h"
+#include "spreading.h"
 
 class CrossLinker {
 public:
@@ -42,11 +43,13 @@ public:
 
     [[nodiscard]] const std::vector<std::shared_ptr<Poly>>& getPolyVec() const;
 
-    void addAtom(std::shared_ptr<Atom> atom_ptr, int mono, bool ar = false);
+    void addAtom(std::shared_ptr<Atom> atom_ptr, bool ar = false);
 
-    void addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono, bool ar = false);
+    void addAtom(int index, std::shared_ptr<Atom> atom_ptr, bool ar = false);
 
     void addEdge(int from, int to, const std::string& type);
+
+    void addPoly(float x, float y, float z, int neigh);
 
     [[nodiscard]] bool isAr(int index) const;
 
@@ -55,6 +58,8 @@ public:
     [[nodiscard]] const std::vector<std::shared_ptr<Edge>>& getEdge(int index) const;
 
     [[nodiscard]] const std::vector<std::vector<std::shared_ptr<Edge>>>& getEdgeVec() const;
+
+    void makeEnd(int poly_index, const std::string& end_symbol = "H");
 
     friend std::ostream& operator<<(std::ostream& os, const CrossLinker& cl);
 
@@ -66,16 +71,24 @@ private:
     std::vector<int> is_ar;
 };
 
-
 class CrosslinkingSystem {
 public:
-    CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslink_graph, std::vector<std::array<int, 4>> cross_network);
+    CrosslinkingSystem() = delete;
+    CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslinkers, std::vector<std::array<int, 4>> crosslinker_network,
+                       std::vector<std::vector<Position>> point_lists);
+
     CrosslinkingSystem(const CrosslinkingSystem& other) = delete;
     CrosslinkingSystem& operator=(const CrosslinkingSystem& other) = delete;
 
     ~CrosslinkingSystem() = default;
 
-    [[nodiscard]] int getCrosslinkSize() const;
+    [[nodiscard]] int getAtomSize() const ;
+
+    [[nodiscard]] int getEdgeSize() const ;
+
+    [[nodiscard]] int getCrosslinkerNumber() const;
+
+    [[nodiscard]] int getCrosslinkerNetworkNumber() const ;
 
     [[nodiscard]] std::shared_ptr<CrossLinker> getCrosslinkGraph(int index) const;
 
@@ -85,21 +98,21 @@ public:
 
     [[nodiscard]] const std::vector<std::shared_ptr<Graph>> &getChainGraphVec() const;
 
-    [[nodiscard]] const std::array<int, 4>& getEdge(int index) const ;
+    [[nodiscard]] const std::array<int, 4>& getCrosslinkerNetworkInIdx(int index) const ;
 
-    [[nodiscard]] const std::vector<std::array<int, 4>>& getEdgeVec() const ;
+    [[nodiscard]] const std::vector<std::array<int, 4>>& getCrosslinkerNetwork() const ;
 
-    void addEdge(const std::array<int, 4>& e);
-
-    bool calcChainGraphs(const std::array<int, 4>& e, const CustomFunctionLoader& custfunc, const std::vector<std::shared_ptr<Graph>>& sequence,
+    void calcChainGraphs(std::shared_ptr<Graph>& chain_ptr, int chain_index, const std::vector<std::shared_ptr<Graph>>& sequence,
                          int degree_polymerization, bool random_polymerization = false, int optimize_size = 1);
 
+    void makeEnd(const std::string& end_system);
 
+    friend std::ostream& operator<<(std::ostream& os, const CrosslinkingSystem& cls);
 
 private:
-    int n_;
-    std::vector<std::shared_ptr<CrossLinker>> crosslink_graphs_;
-    std::vector<std::array<int, 4>> edges_;
+    std::vector<std::shared_ptr<CrossLinker>> crosslinkers_;
+    std::vector<std::array<int, 4>> crosslinker_network_;
+    std::vector<std::vector<Position>> point_lists_;
     std::shared_ptr<Grid> tree_ptr_;
     std::vector<std::shared_ptr<Graph>> chain_graphs_;
     std::vector<std::vector<int>> poly_seen_;

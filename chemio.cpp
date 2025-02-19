@@ -97,6 +97,47 @@ std::shared_ptr<Graph> chemio::PyInfoConvertToGraph(
     return g;
 }
 
+std::shared_ptr<CrossLinker> chemio::PyInfoConvertToCrossLinker(
+        const std::vector<std::vector<std::variant<long, double, std::string>>> &atoms_vec,
+        const std::vector<std::vector<std::variant<long, double, std::string>>> &edges_vec,
+        const std::vector<std::vector<std::variant<long, double, std::string>>> &polys_vec,
+        const std::vector<std::vector<std::variant<long, double, std::string>>> &ring_edges_vec
+        ) {
+    auto g = std::make_shared<CrossLinker>();
+
+    // atoms
+    for (const auto& vec : atoms_vec) {
+        std::string name = std::get<std::string>(vec[0]);
+        float x = static_cast<float>(std::get<double>(vec[1]));
+        float y = static_cast<float>(std::get<double>(vec[2]));
+        float z = static_cast<float>(std::get<double>(vec[3]));
+        bool ar = static_cast<bool>(std::get<long>(vec[4]));
+        g->addAtom(std::make_shared<Atom>(name, x, y, z), ar);
+    }
+
+    // edges
+
+    for (const auto& vec : edges_vec) {
+        int x = static_cast<int>(std::get<long>(vec[0]));
+        int y = static_cast<int>(std::get<long>(vec[1]));
+        std::string type = std::get<std::string>(vec[2]);
+        g->addEdge(x, y, type);
+        g->addEdge(y, x, type);
+    }
+
+    // polys
+    for (const auto& vec : polys_vec) {
+        int who = static_cast<int>(std::get<long>(vec[0]));
+        float x = static_cast<float>(std::get<double>(vec[1]));
+        float y = static_cast<float>(std::get<double>(vec[2]));
+        float z = static_cast<float>(std::get<double>(vec[3]));
+        g->addPoly(x, y, z, who);
+    }
+
+    return g;
+}
+
+
 std::shared_ptr<Graph> chemio::buildGraphFromPSmiles(const std::string& psmiles) {
     if (psmiles.empty()) {
         throw exception::InvalidParameterException("The psmiles string is empty");
@@ -384,4 +425,164 @@ void chemio::writeLoss2File(const std::string& loss_file_name, const std::unique
     outFile.close();
 
     std::cout << "The file named " << loss_file_name << " has been finished" << std::endl;
+}
+
+void chemio::writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::shared_ptr<CrosslinkingSystem>& cls, const std::string& file_info) {
+    std::ofstream outFile(file_name);
+    if (!outFile.is_open()) {
+        std::cerr << "Error to open " << file_name << std::endl;
+        return;
+    }
+
+    outFile << "###" << std::endl;
+    std::time_t now = std::time(nullptr);
+    char* time_str = std::ctime(&now);
+    outFile << "### Created by PolyChef-cpp17 on " << time_str;
+    outFile << "###" << std::endl;
+    outFile << std::endl;
+
+    outFile << "@<TRIPOS>MOLECULE" << std::endl;
+    outFile << file_info << std::endl;
+    int atom_sum = cls->getAtomSize();
+    int edge_sum = cls->getEdgeSize();
+
+    outFile << atom_sum << ' ' << edge_sum << ' ' << 1 << ' ' << 0 << ' ' << 0 << std::endl;
+
+    outFile << "SMALL" << std::endl;
+    outFile << "USER_CHARGES" << std::endl;
+    outFile << std::endl << std::endl;
+    outFile << "@<TRIPOS>ATOM" << std::endl;
+
+
+    // crosslinker first
+    std::vector<std::vector<int>> chain_index_table(cls->getCrosslinkerNetworkNumber());
+    std::vector<std::vector<int>> crosslink_index_table(cls->getCrosslinkerNumber());
+    std::vector<std::string> atom_env(atom_sum);
+
+    int mono_index = 0, atom_index = 0, edge_index = 0;
+
+    for (int gid = 0; gid < cls->getCrosslinkerNumber(); gid ++) {
+        const auto& cl = cls->getCrosslinkGraph(gid);
+        for (int i = 0; i < cl->size(); i ++) {
+            const auto atom_ptr = cl->getAtom(i);
+
+            outFile << std::setw(7) << std::right << (atom_index + 1) << ' ' << std::setw(8) << std::left << atom_ptr->getSymbol() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
+            << atom_ptr->getx() << std::setw(10) << std::fixed << std::setprecision(4) << std::right << atom_ptr->gety() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
+            << atom_ptr->getz() << ' ' << std::setw(5) << std::left << chemio::getAtomType(atom_ptr->getSymbol(), (int)cl->getEdge(i).size(), cl->isAr(i)) << std::setw(6) << std::right
+            << mono_index << std::setw(9) << std::right << 0 << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
+
+            crosslink_index_table[gid].emplace_back(atom_index);
+            atom_index ++;
+        }
+        mono_index ++;
+    }
+
+    // chain graphs
+    for (int gid = 0; gid < cls->getCrosslinkerNetworkNumber(); gid ++) {
+        const auto& chain = cls->getChainGraph(gid);
+        int next_mono = mono_index;
+        for (int i = 0; i < chain->size(); i ++) {
+            const auto atom_ptr = chain->getAtom(i);
+
+            outFile << std::setw(7) << std::right << (atom_index + 1) << ' ' << std::setw(8) << std::left << atom_ptr->getSymbol() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
+            << atom_ptr->getx() << std::setw(10) << std::fixed << std::setprecision(4) << std::right << atom_ptr->gety() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
+            << atom_ptr->getz() << ' ' << std::setw(5) << std::left << chemio::getAtomType(atom_ptr->getSymbol(), (int)chain->getEdge(i).size(), chain->isAr(i)) << std::setw(6) << std::right
+            << (chain->getMonomer(i) + mono_index) << std::setw(9) << std::right << 0 << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
+
+            next_mono = std::max(next_mono, chain->getMonomer(i) + mono_index);
+
+            chain_index_table[gid].emplace_back(atom_index);
+            atom_index ++;
+        }
+        mono_index = next_mono + 1;
+    }
+
+    // bond
+    outFile << "@<TRIPOS>BOND" << std::endl;
+    for (int gid = 0; gid < cls->getCrosslinkerNumber(); gid ++) {
+        const auto& cl = cls->getCrosslinkGraph(gid);
+        for (int i = 0; i < cl->getEdgesSize(); i ++) {
+            const auto& vec = cl->getEdge(i);
+            auto atom_id1 = crosslink_index_table[gid][i];
+
+            for (const auto& e : vec) {
+                auto to = e->getTo();
+                auto atom_id2 = crosslink_index_table[gid][to];
+                atom_env[atom_id1] += cl->getAtom(to)->getSymbol() + " ";
+
+                if (atom_id1 < atom_id2) {
+                    const auto &tp = e->getType();
+                    outFile << std::setw(6) << std::right << (++ edge_index) << std::setw(6) << std::right << atom_id1 + 1 << std::setw(6) << std::right << atom_id2 + 1 << std::setw(7) << std::right << tp << '\n';
+                }
+            }
+        }
+    }
+
+    for (int gid = 0; gid < cls->getCrosslinkerNetworkNumber(); gid ++) {
+        const auto& g = cls->getChainGraph(gid);
+        for (int i = 0; i < g->getEdgesSize(); i ++) {
+            const auto& vec = g->getEdge(i);
+            auto atom_id1 = chain_index_table[gid][i];
+
+            for (const auto& e : vec) {
+                auto to = e->getTo();
+                auto atom_id2 = chain_index_table[gid][to];
+                atom_env[atom_id1] += g->getAtom(to)->getSymbol() + " ";
+
+                if (atom_id1 < atom_id2) {
+                    const auto &tp = e->getType();
+                    outFile << std::setw(6) << std::right << (++ edge_index) << std::setw(6) << std::right << atom_id1 + 1 << std::setw(6) << std::right << atom_id2 + 1 << std::setw(7) << std::right << tp << '\n';
+                }
+            }
+        }
+    }
+
+    // linker
+    for (int i = 0; i < cls->getCrosslinkerNetworkNumber(); i ++) {
+        const auto& e = cls->getCrosslinkerNetworkInIdx(i);
+        {
+            int cross_id = e[0], cross_poly_id = e[1];
+            auto atom_id1 = crosslink_index_table[cross_id][cls->getCrosslinkGraph(cross_id)->getPoly(cross_poly_id)->getNeigh()];
+            auto chain_id = i;
+            auto atom_id2 = chain_index_table[chain_id][cls->getChainGraph(i)->polyFront()->getNeigh()];
+
+            atom_env[atom_id1] += cls->getChainGraph(i)->getAtom(cls->getChainGraph(i)->polyFront()->getNeigh())->getSymbol() + " ";
+            atom_env[atom_id2] += cls->getCrosslinkGraph(cross_id)->getAtom(cls->getCrosslinkGraph(cross_id)->getPoly(cross_poly_id)->getNeigh())->getSymbol() + " ";
+
+            outFile << std::setw(6) << std::right << (++ edge_index) << std::setw(6) << std::right << atom_id1 + 1 << std::setw(6) << std::right
+            << atom_id2 + 1 << std::setw(7) << std::right << "1" << '\n';
+        }
+        {
+            int cross_id = e[2], cross_poly_id = e[3];
+            auto atom_id1 = crosslink_index_table[cross_id][cls->getCrosslinkGraph(cross_id)->getPoly(cross_poly_id)->getNeigh()];
+            auto chain_id = i;
+            auto atom_id2 = chain_index_table[chain_id][cls->getChainGraph(i)->polyBack()->getNeigh()];
+
+            atom_env[atom_id1] += cls->getChainGraph(i)->getAtom(cls->getChainGraph(i)->polyBack()->getNeigh())->getSymbol() + " ";
+            atom_env[atom_id2] += cls->getCrosslinkGraph(cross_id)->getAtom(cls->getCrosslinkGraph(cross_id)->getPoly(cross_poly_id)->getNeigh())->getSymbol() + " ";
+
+            outFile << std::setw(6) << std::right << (++ edge_index) << std::setw(6) << std::right << atom_id1 + 1 << std::setw(6) << std::right
+            << atom_id2 + 1 << std::setw(7) << std::right << "1" << '\n';
+        }
+    }
+
+    std::cout << "atom_idx: " << atom_index << " atom_sum: " << atom_sum << " edge_idx: " << edge_index << " edge_sum: " << edge_sum << std::endl;
+    outFile.close();
+
+    assert(atom_index == atom_sum && edge_index == edge_sum);
+
+    std::ofstream adjFile(adj_file_name);
+    if (!adjFile.is_open()) {
+        std::cerr << "Error to open " << adj_file_name << std::endl;
+        outFile.close();
+        return;
+    }
+
+    for (int idx = 0; idx < (int)atom_env.size(); idx ++) {
+        adjFile << idx + 1 << ' ' << atom_env[idx] << '\n';
+    }
+    adjFile.close();
+
+    std::cout << "The file named " << file_name << " has been finished" << std::endl;
+    std::cout << "The file named " << adj_file_name << " has been finished" << std::endl;
 }

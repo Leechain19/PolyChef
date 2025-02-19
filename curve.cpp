@@ -191,3 +191,64 @@ std::vector<Position> RRT::bidirectionalRRT(const Position &start, const Positio
     return {};
 }
 
+std::vector<Position> calCRS(const std::vector<Position>& path, float distance_threshold) {
+    const int n = (int)path.size();
+    if (n == 0 || distance_threshold < 0.1) {
+        throw exception::InvalidParameterException("Too small distance threshold");
+    }
+    Eigen::Matrix<float, 4, 4> CR_Matrix;
+    CR_Matrix << 1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    -3.0, -2.0, 3.0, -1.0,
+    2.0, 1.0, -2.0, 1.0;
+
+    Eigen::MatrixXf velocity(n, 3);
+    for (int i = 0; i < n; i ++) {
+        velocity.row(i) = 0.5 * (path[std::min(n-1, i+1)] - path[std::max(0, i-1)]);
+    }
+
+    std::vector<Position> all_points;
+
+    for (int i = 0; i < n - 1; ++ i) {
+        Eigen::Matrix<float, 4, 3> mtx;
+        mtx.row(0) = path[i];
+        mtx.row(1) = velocity.row(i);
+        mtx.row(2) = path[i+1];
+        mtx.row(3) = velocity.row(i+1);
+
+        auto weight_matrix = CR_Matrix * mtx;
+        float distance = atom::positionDistance(path[i], path[i+1]);
+        int num_points = std::max(10, static_cast<int>(std::ceil(distance / distance_threshold)));
+
+        for (int j = 0; j < num_points; j ++) {
+            Eigen::Matrix<float, 1, 4> t;
+            t(0) = 1.0f;
+            for (int k = 1; k < 4; k ++) {
+                t(k) = t(k-1) * (float)j / (float)num_points;
+            }
+            all_points.emplace_back((t * weight_matrix).transpose());
+        }
+    }
+    return all_points;
+}
+
+std::vector<Position> getScatterFromCSV(const std::string& path, bool header) {
+    std::vector<Position> points;
+    std::ifstream file(path);
+    std::string line;
+    std::string token;
+
+    // 跳过表头
+    if (header)
+        std::getline(file, line);
+
+    while (std::getline(file, line)) {
+        std::istringstream ss(line);
+        float x, y, z;
+        std::getline(ss, token, ','); x = static_cast<float>(std::stod(token));
+        std::getline(ss, token, ','); y = static_cast<float>(std::stod(token));
+        std::getline(ss, token, ','); z = static_cast<float>(std::stod(token));
+        points.emplace_back(x, y, z);
+    }
+    return calCRS(points, 0.8);
+}

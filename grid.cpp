@@ -91,3 +91,12 @@ void Grid::add(const std::shared_ptr<Atom>& atom_ptr, bool including_hydrogen) {
 bool Grid::isCollision(const Position &point, float threshold) {
     return search_nn(point).second < threshold;
 }
+
+void Grid::erase(const std::shared_ptr<Atom>& atom_ptr) {
+    int xx = _getpos(atom_ptr->getx()), yy = _getpos(atom_ptr->gety()), zz = _getpos(atom_ptr->getz());
+    GridCell& cell = mp[{xx, yy, zz}];
+    if (!cell.atoms.empty() && cell.atoms.back() == atom_ptr) {
+        cell.atoms.pop_back();
+        _size -= 1;
+    }
+}

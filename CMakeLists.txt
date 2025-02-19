@@ -46,16 +46,6 @@ include_directories("/usr/local/include/eigen3")
 # cuda
 #include_directories("/usr/local/cuda/include")
 
-# kdtree
-#add_library(kdtree STATIC
-#        ${CMAKE_SOURCE_DIR}/kdtree/kdtree.cpp
-#        ${CMAKE_SOURCE_DIR}/kdtree/kdtree.hpp
-#        ${CMAKE_SOURCE_DIR}/kdtree/point.hpp
-#        ${CMAKE_SOURCE_DIR}/kdtree/aabb.cpp
-#        ${CMAKE_SOURCE_DIR}/kdtree/aabb.hpp
-#        )
-#target_include_directories(kdtree PRIVATE "${PROJECT_SOURCE_DIR}/kdtree")
-
 # Python 库文件
 link_directories("/home/public/miniconda3/envs/develop/lib/python3.8/site-packages")
 #link_libraries("/home/public/miniconda3/envs/develop/lib/libpython3.8.so")

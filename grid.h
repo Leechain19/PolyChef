@@ -39,12 +39,22 @@ public:
     std::pair<std::shared_ptr<Atom>, float> search_nn(const Position &point, float collision_threshold = 2.5);
     void add(const Position &point, const std::string &symbol, bool including_hydrogen = true);
     void add(const std::shared_ptr<Atom>& atom_ptr, bool including_hydrogen = true);
+    void erase(const std::shared_ptr<Atom>& atom_ptr);
 
     template<typename T>
     void add_mol(const T& g, bool including_hydrogen = true);
+
     template<typename T>
     void add_mol(const std::shared_ptr<T>& g_ptr, bool including_hydrogen = true);
+
+    template<typename T>
+    void erase_mol(const T& g);
+
+    template<typename T>
+    void erase_mol(const std::shared_ptr<T>& g_ptr);
+
     bool isCollision(const Position& point, float threshold);
+
 };
 
 
@@ -59,6 +69,20 @@ template<typename T>
 void Grid::add_mol(const std::shared_ptr<T> &g_ptr, bool including_hydrogen) {
     for (const auto& ptr : g_ptr->getAtomVec()) {
         add(ptr, including_hydrogen);
+    }
+}
+
+template<typename T>
+void Grid::erase_mol(const T& g) {
+    for (auto it = g.getAtomVec().rbegin(); it != g.getAtomVec().rend(); it ++) {
+        erase(*it);
+    }
+}
+
+template<typename T>
+void Grid::erase_mol(const std::shared_ptr<T> &g_ptr) {
+    for (auto it = g_ptr->getAtomVec().rbegin(); it != g_ptr->getAtomVec().rend(); it ++) {
+        erase(*it);
     }
 }
 

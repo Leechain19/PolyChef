@@ -107,14 +107,14 @@ const std::vector<std::shared_ptr<Poly>>& CrossLinker::getPolyVec() const {
     return polys;
 }
 
-void CrossLinker::addAtom(std::shared_ptr<Atom> atom_ptr, int mono, bool ar) {
+void CrossLinker::addAtom(std::shared_ptr<Atom> atom_ptr, bool ar) {
     this->n += 1;
     this->vertices.push_back(std::move(atom_ptr));
     this->edges.emplace_back();
     this->is_ar.push_back(ar);
 }
 
-void CrossLinker::addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono, bool ar) {
+void CrossLinker::addAtom(int index, std::shared_ptr<Atom> atom_ptr, bool ar) {
     if (index >= n) {
         throw exception::InvalidParameterException("(CrossLinker.addAtom) The index exceeds the array bound");
     }
@@ -128,6 +128,10 @@ void CrossLinker::addEdge(int from, int to, const std::string &type) {
     }
     auto ptr = std::make_shared<Edge>(to, type);
     edges[from].emplace_back(ptr);
+}
+
+void CrossLinker::addPoly(float x, float y, float z, int neigh) {
+    this->polys.push_back(std::make_shared<Poly>(neigh, x, y, z));
 }
 
 bool CrossLinker::isAr(int index) const {
@@ -174,78 +178,141 @@ std::ostream &operator<<(std::ostream &os, const CrossLinker &cl) {
     return os;
 }
 
+void CrossLinker::makeEnd(int poly_index, const std::string& end_symbol) {
+    auto poly_ptr = polys.at(poly_index);
+    // shorten C-C bond as C-H
+    auto atom0_ptr = getAtom(poly_ptr->getNeigh());
 
-CrosslinkingSystem::CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslink_graphs, std::vector<std::array<int, 4>> cross_network) :
-crosslink_graphs_(std::move(crosslink_graphs)), edges_(std::move(cross_network)) {
-    n_ = (int)crosslink_graphs_.size();
-    tree_ptr_ = std::make_shared<Grid>();
-    for (const auto& cg : crosslink_graphs_) {
-        poly_seen_.emplace_back(std::vector<int>(cg->getPolysSize()));
-        tree_ptr_->add_mol(cg, true);
-    }
+    Vector direct = atom::positionMinusPosition(poly_ptr->getPosition(), atom0_ptr->getPosition()).normalized() * BondTable::get_length(end_symbol, atom0_ptr->getSymbol(), "-");
+    Position new_pos = atom0_ptr->getPosition() + direct;
+    auto atom1_ptr = std::make_shared<Atom>(end_symbol, new_pos.x(), new_pos.y(), new_pos.z());
+    this->addAtom(atom1_ptr);
+    int cur = n - 1;
+    addEdge(cur, poly_ptr->getNeigh(), end_symbol);
+    addEdge(poly_ptr->getNeigh(), cur, end_symbol);
 }
 
-int CrosslinkingSystem::getCrosslinkSize() const {
-    return n_;
+CrosslinkingSystem::CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslinkers, std::vector<std::array<int, 4>> crosslinker_network,
+                                       std::vector<std::vector<Position>> point_lists) :
+                                       crosslinkers_(std::move(crosslinkers)), crosslinker_network_(std::move(crosslinker_network)),
+                                       point_lists_(std::move(point_lists)) {
+    assert((int)point_lists.size() == (int)crosslinker_network.size());
+    tree_ptr_ = std::make_shared<Grid>();
+    for (const auto& cl : crosslinkers_) {
+        poly_seen_.emplace_back(std::vector<int>(cl->getPolysSize()));
+        tree_ptr_->add_mol(cl, true);
+    }
+    chain_graphs_.resize((int)crosslinker_network.size(), nullptr);
+}
+
+int CrosslinkingSystem::getAtomSize() const {
+    int sum = 0;
+    for (const auto& cl : crosslinkers_) {
+        sum += cl->size();
+    }
+    for (const auto& chain_ptr : chain_graphs_) {
+        sum += chain_ptr->size();
+    }
+    return sum;
+}
+
+int CrosslinkingSystem::getEdgeSize() const {
+    int sum = 0;
+    for (const auto& cl : crosslinkers_) {
+        sum += cl->getEdgesSize();
+    }
+    for (const auto& chain_ptr : chain_graphs_) {
+        sum += chain_ptr->getEdgesSize();
+    }
+    sum >>= 1;
+    sum += getCrosslinkerNetworkNumber();
+    return sum;
+}
+
+int CrosslinkingSystem::getCrosslinkerNumber() const {
+    return (int)crosslinkers_.size();
+}
+
+int CrosslinkingSystem::getCrosslinkerNetworkNumber() const {
+    return (int)crosslinker_network_.size();
 }
 
 std::shared_ptr<CrossLinker> CrosslinkingSystem::getCrosslinkGraph(int index) const {
-    if (index < 0 or index >= n_) {
-        throw exception::InvalidParameterException("CrosslinkingSystem: getChainGraph");
-    }
-    return crosslink_graphs_[index];
+    return crosslinkers_.at(index);
 }
 
 const std::vector<std::shared_ptr<CrossLinker>>& CrosslinkingSystem::getCrosslinkGraphVec() const {
-    return crosslink_graphs_;
+    return crosslinkers_;
 }
 
 std::shared_ptr<Graph> CrosslinkingSystem::getChainGraph(int index) const {
     if (index < 0 or index >= (int)chain_graphs_.size()) {
         throw exception::InvalidParameterException("CrosslinkingSystem: getChainGraph");
     }
-    return chain_graphs_[index];
+    return chain_graphs_.at(index);
 }
 
 const std::vector<std::shared_ptr<Graph>>& CrosslinkingSystem::getChainGraphVec() const {
     return chain_graphs_;
 }
 
-const std::array<int, 4>& CrosslinkingSystem::getEdge(int index) const {
-    if (index < 0 or index >= (int)edges_.size()) {
+const std::array<int, 4>& CrosslinkingSystem::getCrosslinkerNetworkInIdx(int index) const {
+    if (index < 0 or index >= (int)crosslinker_network_.size()) {
         throw exception::InvalidParameterException("CrosslinkingSystem: getEdge");
     }
-    return edges_[index];
+    return crosslinker_network_.at(index);
 }
 
-const std::vector<std::array<int, 4>>& CrosslinkingSystem::getEdgeVec() const {
-    return edges_;
+const std::vector<std::array<int, 4>>& CrosslinkingSystem::getCrosslinkerNetwork() const {
+    return crosslinker_network_;
 }
 
-void CrosslinkingSystem::addEdge(const std::array<int, 4>& e) {
-    edges_.emplace_back(e);
-}
-
-bool CrosslinkingSystem::calcChainGraphs(const std::array<int, 4>& e, const CustomFunctionLoader& custfunc, const std::vector<std::shared_ptr<Graph>>& sequence,
-                                         int degree_polymerization, bool random_polymerization, int optimize_size) {
-    if (sequence.empty()) {
-        throw exception::InvalidParameterException("CorsslinkingSystem::calcChainGraphs: empty sequence");
-    }
-    // do something
-    std::cout << "Calculating the paths:" << std::endl;
-    auto [cid1, cpid1, cid2, cpid2] = e;
+void CrosslinkingSystem::calcChainGraphs(std::shared_ptr<Graph>& chain_ptr, int chain_index, const std::vector<std::shared_ptr<Graph>> &sequence,
+                                    int degree_polymerization, bool random_polymerization, int optimize_size) {
+    auto [cid1, cpid1, cid2, cpid2] = crosslinker_network_.at(chain_index);
     assert(!poly_seen_[cid1][cpid1] && !poly_seen_[cid2][cpid2]);
 
-    auto position1 = crosslink_graphs_.at(cid1)->getPolyPosition(cpid1);
-    auto position2 = crosslink_graphs_.at(cid2)->getPolyPosition(cpid2);
+    chain_ptr = std::make_shared<Graph>();
+    curveSpreading(point_lists_.at(chain_index), chain_ptr, tree_ptr_, sequence, degree_polymerization, 5.0f, 5, random_polymerization,
+                   optimize_size, false);
 
-    std::cout << "Starting RRT Algo..." << std::endl;
+    auto position1 = crosslinkers_.at(cid1)->getPolyPosition(cpid1);
+    auto position2 = crosslinkers_.at(cid2)->getPolyPosition(cpid2);
+    auto vec1 = chain_ptr->getAtomPosition(chain_ptr->polyBack()->getNeigh()) - chain_ptr->getAtomPosition(chain_ptr->polyBack()->getNeigh());
+    auto vec2 = position2 - position1;
 
+    auto rod = rotateMatrix(vec1, vec2);
+    auto scale_ratio = vec2.norm() / vec1.norm();
 
+    auto d_vec = position1 - chain_ptr->getAtomPosition(chain_ptr->polyBack()->getNeigh());
+    auto dx = d_vec.x();
+    auto dy = d_vec.y();
+    auto dz = d_vec.z();
 
+    tree_ptr_->erase_mol(chain_ptr);
+    chain_ptr->bfsRotateScaleTranslation(chain_ptr->polyFront()->getNeigh(), -1, rod, scale_ratio, dx, dy, dz);
+    tree_ptr_->add_mol(chain_ptr);
+    chain_graphs_[chain_index] = chain_ptr;
 
-
-    return false;
+    poly_seen_[cid1][cpid1] = true;
+    poly_seen_[cid2][cpid2] = true;
 }
 
+void CrosslinkingSystem::makeEnd(const std::string &end_system) {
+    for (int i = 0; i < (int)crosslinkers_.size(); i ++) {
+        const auto& cl = crosslinkers_[i];
+        for (int j = 0; j < (int)cl->getPolysSize(); i ++) {
+            if (!poly_seen_[i][j]) {
+                poly_seen_[i][j] = true;
+                cl->makeEnd(j, end_system);
+            }
+        }
+    }
+}
 
+std::ostream &operator<<(std::ostream &os, const CrosslinkingSystem &cls) {
+    os << "CrosslinkSystem:\n" <<
+    "CrossLinker number: " << cls.crosslinkers_.size() << '\n' <<
+    "Crosslinker_Network: " << cls.crosslinker_network_.size() << std::endl;
+    return os;
+}
