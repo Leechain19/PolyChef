@@ -267,12 +267,12 @@ const std::vector<std::array<int, 4>>& CrosslinkingSystem::getCrosslinkerNetwork
     return crosslinker_network_;
 }
 
-void CrosslinkingSystem::calcChainGraphs(std::shared_ptr<Graph>& chain_ptr, int chain_index, const std::vector<std::shared_ptr<Graph>> &sequence,
+void CrosslinkingSystem::calcChainGraphs(int chain_index, const std::vector<std::shared_ptr<Graph>> &sequence,
                                     int degree_polymerization, bool random_polymerization, int optimize_size) {
     auto [cid1, cpid1, cid2, cpid2] = crosslinker_network_.at(chain_index);
     assert(!poly_seen_[cid1][cpid1] && !poly_seen_[cid2][cpid2]);
 
-    chain_ptr = std::make_shared<Graph>();
+    auto& chain_ptr = chain_graphs_[chain_index];
     curveSpreading(point_lists_.at(chain_index), chain_ptr, tree_ptr_, sequence, degree_polymerization, 5.0f, 5, random_polymerization,
                    optimize_size, false);
 
@@ -292,7 +292,6 @@ void CrosslinkingSystem::calcChainGraphs(std::shared_ptr<Graph>& chain_ptr, int 
     tree_ptr_->erase_mol(chain_ptr);
     chain_ptr->bfsRotateScaleTranslation(chain_ptr->polyFront()->getNeigh(), -1, rod, scale_ratio, dx, dy, dz);
     tree_ptr_->add_mol(chain_ptr);
-    chain_graphs_[chain_index] = chain_ptr;
 
     poly_seen_[cid1][cpid1] = true;
     poly_seen_[cid2][cpid2] = true;

@@ -22,7 +22,6 @@
 #include <string>
 
 std::vector<Position> calCRS(const std::vector<Position>& path, float distance_threshold = 1.0);
-
 std::vector<Position> getScatterFromCSV(const std::string& path, bool header = true);
 
 using myKDTree = kdtree::KDTree<int, 3>;

@@ -102,7 +102,7 @@ public:
 
     [[nodiscard]] const std::vector<std::array<int, 4>>& getCrosslinkerNetwork() const ;
 
-    void calcChainGraphs(std::shared_ptr<Graph>& chain_ptr, int chain_index, const std::vector<std::shared_ptr<Graph>>& sequence,
+    void calcChainGraphs(int chain_index, const std::vector<std::shared_ptr<Graph>>& sequence,
                          int degree_polymerization, bool random_polymerization = false, int optimize_size = 1);
 
     void makeEnd(const std::string& end_system);

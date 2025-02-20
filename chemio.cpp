@@ -302,6 +302,169 @@ std::shared_ptr<Graph> chemio::buildGraphFromMol2(const std::string& path) {
     return PyInfoConvertToGraph(atoms_vec, edges_vec, polys_vec, ring_edges_vec);
 }
 
+std::shared_ptr<CrossLinker> chemio::buildCrossLinkerFromPSmiles(const std::string& psmiles) {
+    if (psmiles.empty()) {
+        throw exception::InvalidParameterException("The psmiles string is empty");
+    }
+    std::string smi;
+    for (const auto& c : psmiles) {
+        if (c == '*') {
+            smi += "13C";
+        }
+        else smi += c;
+    }
+
+    std::cout << "psmiles = " << psmiles << std::endl;
+    std::cout << "smi = " << smi << std::endl;
+
+    // Py
+    Py_Initialize();
+    if (!Py_IsInitialized()) {
+        std::cerr << "Python initialization failed" << std::endl;
+        return nullptr;
+    }
+
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString("sys.path.append('./../script')");
+
+    PyObject* module = PyImport_ImportModule("rdkit_helper");
+
+    if (!module) {
+        PyErr_Print();
+        std::cerr << "Failed to load module 'rdkit_helper.py'" << std::endl;
+        Py_Finalize();
+        return nullptr;
+    }
+
+    PyObject* func = PyObject_GetAttrString(module, "read_smi");
+    if (!func || !PyCallable_Check(func)) {
+        PyErr_Print();
+        std::cerr << "Failed to load function 'read_smi'" << std::endl;
+        Py_DECREF(module);
+        Py_Finalize();
+        return nullptr;
+    }
+
+    PyObject* args = PyTuple_New(1);
+    PyTuple_SET_ITEM(args, 0, Py_BuildValue("s", smi.c_str()));
+
+    PyObject* result = PyObject_CallObject(func, args);
+    if (!result) {
+        PyErr_Print();
+        std::cerr << "Function call failed" << std::endl;
+        Py_DECREF(func);
+        Py_DECREF(module);
+        Py_Finalize();
+        return nullptr;
+    }
+
+    // 检查返回值是否为元组
+    if (!PyTuple_Check(result)) {
+        std::cerr << "Function did not return a tuple" << std::endl;
+        Py_DECREF(result);
+        Py_DECREF(func);
+        Py_DECREF(module);
+        Py_Finalize();
+        return nullptr;
+    }
+
+    // 提取返回的 4 个列表
+    PyObject* atoms_cache = PyTuple_GetItem(result, 0);
+    PyObject* edges_cache = PyTuple_GetItem(result, 1);
+    PyObject* polys_cache = PyTuple_GetItem(result, 2);
+    PyObject* ring_edges_cache = PyTuple_GetItem(result, 3);
+
+    // 转换为 C++ 数据结构
+    std::vector<std::vector<std::variant<long, double, std::string>>> atoms_vec = chemio::extract_list(atoms_cache);
+    std::vector<std::vector<std::variant<long, double, std::string>>> edges_vec = chemio::extract_list(edges_cache);
+    std::vector<std::vector<std::variant<long, double, std::string>>> polys_vec = chemio::extract_list(polys_cache);
+    std::vector<std::vector<std::variant<long, double, std::string>>> ring_edges_vec = chemio::extract_list(ring_edges_cache);
+
+    // 清理资源
+    Py_DECREF(args);
+    Py_DECREF(result);
+    Py_DECREF(func);
+    Py_DECREF(module);
+
+    return PyInfoConvertToCrossLinker(atoms_vec, edges_vec, polys_vec, ring_edges_vec);
+}
+
+std::shared_ptr<CrossLinker> chemio::buildCrossLinkerFromMol2(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        throw exception::IllegalStringException("buildCrossLinkerFromMol2: Illegal Mol2 Path");
+    }
+    // Py
+    Py_Initialize();
+    if (!Py_IsInitialized()) {
+        std::cerr << "Python initialization failed" << std::endl;
+        return nullptr;
+    }
+
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString("sys.path.append('./../script')");
+
+    PyObject* module = PyImport_ImportModule("rdkit_helper");
+
+    if (!module) {
+        PyErr_Print();
+        std::cerr << "Failed to load module 'rdkit_helper'" << std::endl;
+        Py_Finalize();
+        return nullptr;
+    }
+
+    PyObject* func = PyObject_GetAttrString(module, "read_mol2");
+    if (!func || !PyCallable_Check(func)) {
+        PyErr_Print();
+        std::cerr << "Failed to load function 'read_mol2'" << std::endl;
+        Py_DECREF(module);
+        Py_Finalize();
+        return nullptr;
+    }
+
+    PyObject* args = PyTuple_New(1);
+    PyTuple_SET_ITEM(args, 0, Py_BuildValue("s", path.c_str()));
+
+    PyObject* result = PyObject_CallObject(func, args);
+    if (!result) {
+        PyErr_Print();
+        std::cerr << "Function call failed" << std::endl;
+        Py_DECREF(func);
+        Py_DECREF(module);
+        Py_Finalize();
+        return nullptr;
+    }
+
+    // 检查返回值是否为元组
+    if (!PyTuple_Check(result)) {
+        std::cerr << "Function did not return a tuple" << std::endl;
+        Py_DECREF(result);
+        Py_DECREF(func);
+        Py_DECREF(module);
+        Py_Finalize();
+        return nullptr;
+    }
+
+    // 提取返回的 4 个列表
+    PyObject* atoms_cache = PyTuple_GetItem(result, 0);
+    PyObject* edges_cache = PyTuple_GetItem(result, 1);
+    PyObject* polys_cache = PyTuple_GetItem(result, 2);
+    PyObject* ring_edges_cache = PyTuple_GetItem(result, 3);
+
+    // 转换为 C++ 数据结构
+    std::vector<std::vector<std::variant<long, double, std::string>>> atoms_vec = chemio::extract_list(atoms_cache);
+    std::vector<std::vector<std::variant<long, double, std::string>>> edges_vec = chemio::extract_list(edges_cache);
+    std::vector<std::vector<std::variant<long, double, std::string>>> polys_vec = chemio::extract_list(polys_cache);
+    std::vector<std::vector<std::variant<long, double, std::string>>> ring_edges_vec = chemio::extract_list(ring_edges_cache);
+
+    // 清理资源
+    Py_DECREF(args);
+    Py_DECREF(result);
+    Py_DECREF(func);
+    Py_DECREF(module);
+
+    return PyInfoConvertToCrossLinker(atoms_vec, edges_vec, polys_vec, ring_edges_vec);
+}
+
 std::string chemio::getAtomType(const std::string& name, int bond_num, bool ar) {
     /*
     >> C.3 sp3 carbon

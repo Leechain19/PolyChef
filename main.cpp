@@ -18,15 +18,18 @@
 #include <ctime>
 #include "curve.h"
 
-
 #define STRINGIFY(x) (#x)
 
-#ifndef ONLINE_JUDGE
+#ifndef DUBUG
+#define DUBGE
 std::string to_string(std::string s) { return '"' + s + '"'; }
 std::string to_string(const char *s) { return to_string((std::string) s); }
 std::string to_string(bool b) { return (b ? "true" : "false"); }
+std::string to_string(int x) { return std::to_string(x); }
 template<typename A, typename B>
 std::string to_string(std::pair<A, B> p) { return "(" + to_string(p.first) + ", " + to_string(p.second) + ")"; }
+template<typename A>
+std::string to_string(A v) { bool first = true; std::string res = "{"; for(const auto &x : v) { if(!first) { res += ", "; } first = false; res += to_string(x);} res += "}"; return res; }
 void debug_out() { std::cout << std::endl; }
 template<typename Head, typename... Tail> void debug_out(Head H, Tail... T) { std::cout << " " << to_string(H); debug_out(T...);}
 #define dbg(...) std::cout << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
@@ -161,25 +164,7 @@ void buildSystemWithScatter(const std::string& path, const std::vector<std::stri
 
 void buildChainBasedCurve(const std::string& output_path, const std::vector<std::string>& smiles_list, const std::vector<std::string>& chain_curve_list, int degree_of_polymerization = 5000,
                           bool random_polymerization = true, int optimize_size = 1, bool verbose = false, const std::string& file_info = "NO_INFO") {
-    std::vector<std::shared_ptr<Graph>> sequence;
-    for (const auto& smiles : smiles_list) {
-        sequence.emplace_back(chemio::buildGraphFromPSmiles(smiles));
-    }
 
-    auto now_time = getCurrentTimeAsString();
-    std::cout << "Time: " << now_time << std::endl;
-
-    std::string system = connectStringVectorAsOne(smiles_list);
-    std::cout << "System: " << system << std::endl;
-
-    auto saving_dir = output_path;
-    if (saving_dir.empty() or saving_dir.back() != '/') saving_dir.push_back('/');
-    saving_dir += now_time;
-
-    createDirectory(saving_dir);
-
-    buildSystemWithScatter(saving_dir, chain_curve_list, sequence, degree_of_polymerization, random_polymerization, optimize_size, verbose, 10000.0, file_info);
-    std::cout << "Finish!" << std::endl;
 }
 
 void InitializeOpenMP(int target_thread_num) {
@@ -227,17 +212,11 @@ void solve(const std::string& filename) {
     readFromJSON(j, polymer_type, STRINGIFY(polymer_type));
     polymer_type = lower(polymer_type);
 
-    unsigned int seed = 114514;
-    readFromJSON(j, seed, STRINGIFY(seed));
-
     int threads = 1;
     readFromJSON(j, threads, STRINGIFY(threads));
 
     // OpenMP threads setting
     InitializeOpenMP(threads);
-
-    std::vector<int> box_size;
-    readVectorFromJSON(j, box_size, STRINGIFY(box_size));
 
     std::string output_directory_path;
     readFromJSON(j, output_directory_path, STRINGIFY(output_directory_path));
@@ -251,10 +230,10 @@ void solve(const std::string& filename) {
     bool random_polymerization = false;
     readFromJSON(j, random_polymerization, STRINGIFY(random_polymerization));
 
-    int chain_max_polymerization_degree;
+    int chain_max_polymerization_degree = 5000;
     readFromJSON(j, chain_max_polymerization_degree, STRINGIFY(chain_max_polymerization_degree));
 
-    int optimize_size = 5000;
+    int optimize_size = 1;
     readFromJSON(j, optimize_size, STRINGIFY(optimize_size));
 
     std::string file_info;
@@ -263,31 +242,139 @@ void solve(const std::string& filename) {
     bool verbose = false;
     readFromJSON(j, verbose, STRINGIFY(verbose));
 
+    // ==================
+
+    auto now_time = getCurrentTimeAsString();
+    std::cout << "Time: " << now_time << std::endl;
+
+    std::string system = connectStringVectorAsOne(chain_psmiles_list);
+    std::cout << "System: " << system << std::endl;
+
+    // ===================
+
+    std::vector<std::shared_ptr<Graph>> sequence;
+    for (const auto& smiles : chain_psmiles_list) {
+        sequence.emplace_back(chemio::buildGraphFromPSmiles(smiles));
+    }
+
+    auto saving_dir = output_directory_path;
+    if (saving_dir.empty() or saving_dir.back() != '/') saving_dir.push_back('/');
+    saving_dir += now_time;
+    createDirectory(saving_dir);
+
+    // chain type
+    if (startsWith(polymer_type, "chain")) {
+        buildSystemWithScatter(saving_dir, chain_curve_list, sequence, chain_max_polymerization_degree, random_polymerization, optimize_size, verbose, 10000.0, file_info);
+        std::cout << "Finish!" << std::endl;
+        return;
+    }
+
+    // crosslink type
     if (startsWith(polymer_type, "cross")) {
         // type: crosslink polymer
-        std::vector<std::string> crosslinks_psmiles_list;
-        readVectorFromJSON(j, crosslinks_psmiles_list, STRINGIFY(crosslinks_psmiles_list));
+        std::vector<std::string> crosslinker_mol2_list;
+        readVectorFromJSON(j, crosslinker_mol2_list, STRINGIFY(crosslinker_mol2_list));
 
-        int crosslinks_numbers;
-        readFromJSON(j, crosslinks_numbers, STRINGIFY(crosslinks_numbers));
+        std::vector<int> crosslinker_types;
+        readVectorFromJSON(j, crosslinker_types, STRINGIFY(crosslinker_types));
+        int crosslinker_number = (int)crosslinker_types.size();
+
+        std::vector<std::array<int, 4>> crosslinking_network;
+        readVectorFromJSON(j, crosslinking_network, STRINGIFY(crosslinking_network));
+
+        std::vector<std::string> crosslinking_curves;
+        readVectorFromJSON(j, crosslinking_curves, STRINGIFY(crosslinking_curves));
+
+        // check inputs
+        assert((int)crosslinking_curves.size() == (int)crosslinking_network.size());
+
+        int type_size = (int)crosslinker_mol2_list.size();
+
+        // 查看type是否合法
+        for (const auto& x : crosslinker_types) {
+            if (x < 0 || x >= type_size) {
+                throw std::runtime_error("CrossLinker type Error");
+            }
+        }
+
+        // 查看文件是否存在
+        for (const auto& file : crosslinker_mol2_list) {
+            if (!fileExists(file)) {
+                throw std::runtime_error("Unknown file: " + file);
+            }
+        }
+        for (const auto& file : crosslinking_curves) {
+            if (!fileExists(file)) {
+                throw std::runtime_error("Unknown file: " + file);
+            }
+        }
+
+        std::vector<std::shared_ptr<CrossLinker>> crosslinkers(type_size, nullptr);
+        for (int i = 0; i < type_size; i ++) {
+            crosslinkers[i] = chemio::buildCrossLinkerFromMol2(crosslinker_mol2_list[i]);
+        }
+
+        // 检查poly是否存在
+        auto checkPolyAndGetPosition = [&crosslinkers, &crosslinker_types](int who, int poly_id) -> Position {
+            int type = crosslinker_types.at(who);
+            int poly_size = crosslinkers.at(type)->getPolysSize();
+            if (poly_id < 0 || poly_id >= poly_size) {
+                throw std::runtime_error("Error wrong poly: " + std::to_string(who) + "- TypeID: " + std::to_string(type) + " - PolyID: " + std::to_string(poly_id));
+            }
+            return crosslinkers[type]->getPolyPosition(poly_id);
+        };
+
+        std::vector<std::vector<Position>> curve_points((int)crosslinking_curves.size());
+
+        // 检查曲线是否正确
+        for (int i = 0; i < (int)crosslinking_curves.size(); i ++ ) {
+            auto& cv = curve_points[i];
+            cv = getScatterFromCSV(crosslinking_curves[i]);
+
+            const auto& net = crosslinking_network[i];
+            auto poly_position1 = checkPolyAndGetPosition(net[0], net[1]);
+            auto poly_position2 = checkPolyAndGetPosition(net[2], net[3]);
+
+            if (
+                atom::positionDistanceSquared(cv.front(), poly_position1) > atom::positionDistanceSquared(cv.back(), poly_position1) &&
+                atom::positionDistanceSquared(cv.back(), poly_position2) > atom::positionDistanceSquared(cv.front(), poly_position2)
+                ) {
+                // 曲线反了
+                std::reverse(cv.begin(), cv.end());
+            }
+
+            // 检查曲线是否合格
+            if (atom::positionDistanceSquared(cv.front(), poly_position1) > 4.0f || atom::positionDistanceSquared(cv.back(), poly_position2) > 4.0f) {
+                throw std::runtime_error("Unqualified curve: " + crosslinking_curves[i]);
+            }
+        }
+
+        auto cls = std::make_unique<CrosslinkingSystem>(crosslinkers, crosslinking_network, curve_points);
+        for (int i = 0; i < (int)crosslinkers.size() ; i ++ ) {
+            cls->calcChainGraphs(i, sequence, chain_max_polymerization_degree, random_polymerization, optimize_size);
+        }
+        return;
     }
 
-    else if (startsWith(polymer_type, "chain")) {
-        buildChainBasedCurve(output_directory_path, chain_psmiles_list, chain_curve_list, chain_max_polymerization_degree, random_polymerization, optimize_size, verbose, file_info);
-    }
+    // Unknown type
+    throw std::runtime_error("Unknown Polymer Type: " + polymer_type);
 }
 
 void config(int argc, char* argv[], const std::string& config_filename) {
     Options options("polychef config", "Configure settings");
     options.add_options()
-    ("t,threads", "Threads", cxxopts::value<int>())
-    ("o,output", "Output directory path", cxxopts::value<std::string>())
-    ("v,verbose", "Verbose", cxxopts::value<bool>())
-    ("i,input", "Input files list", cxxopts::value<std::vector<std::string>>())
-    ("info", "File info", cxxopts::value<std::string>())
-    ("m,maximum", "Maximum length of chain", cxxopts::value<int>())
     ("type", "Task type: Chain or Crosslinks", cxxopts::value<std::string>())
-    ("c,custfunc", "Custom function", cxxopts::value<std::string>())
+
+    ("i,input", "Input files list", cxxopts::value<std::vector<std::string>>())
+    ("p,psmiles", "Chain PSMILES list", cxxopts::value<std::vector<std::string>>())
+    ("r,random", "Random polymerization or not", cxxopts::value<bool>())
+    ("m,maximum", "Maximum length of chain", cxxopts::value<int>())
+    ("opti", "Optimize Size", cxxopts::value<int>())
+
+    ("o,output", "Output directory path", cxxopts::value<std::string>())
+    ("info", "File info", cxxopts::value<std::string>())
+    ("v,verbose", "Verbose", cxxopts::value<bool>())
+    ("t,threads", "Threads", cxxopts::value<int>())
     ("h,help", "Show help");
 
     auto result = options.parse(argc, argv);
@@ -300,42 +387,9 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     json config;
     read_config(config, config_filename);
 
-    if (result.count("threads")) {
-        config["threads"] = result["threads"].as<int>();
-        std::cout << "Threads number: " << config["threads"] << std::endl;
-    }
-
-    if (result.count("output")) {
-        config["output_directory_path"] = result["output"].as<std::string>();
-        std::cout << "Output directory path has been changed to: " << config["output_directory_path"] << std::endl;
-    }
-
-    if (result.count("verbose")) {
-        config["verbose"] = result["verbose"].as<bool>();
-        std::cout << "Verbose mode " << (config["verbose"] ? "enabled" : "disabled") << "." << std::endl;
-    }
-
-    if (result.count("info")) {
-        config["file_info"] = result["info"].as<std::string>();
-        std::cout << "File Info: " << config["file_info"] << std::endl;
-    }
-
-    if (result.count("maximum")) {
-        config["chain_max_polymerization_degree"] = result["maximum"].as<int>();
-        std::cout << "Chain_max_polymerization_degree: " << config["chain_max_polymerization_degree"] << std::endl;
-    }
-
     if (result.count("type")) {
         config["polymer_type"] = result["type"].as<std::string>();
         std::cout << "Task type: " << config["polymer_type"] << std::endl;
-    }
-
-    if (result.count("custfunc")) {
-        config["custfunc"] = result["custfunc"].as<std::string>();
-        if (!config["custfunc"].empty() && (!endsWith(config["custfunc"], ".so") || !fileExists(config["custfunc"]))) {
-            throw exception::InvalidParameterException("Error: Unknown function");
-        }
-        std::cout << "Custom Function: " << config["custfunc"] << std::endl;
     }
 
     if (result.count("input")) {
@@ -348,6 +402,50 @@ void config(int argc, char* argv[], const std::string& config_filename) {
             std::cout << "  " << ss << "\n";
         }
         std::cout << "  ]" << std::endl;
+    }
+
+    if (result.count("psmiles")) {
+        config["chain_psmiles_list"] = result["psmiles"].as<std::vector<std::string>>();
+        std::cout << "Chain PSMILES list: [\n";
+        for (const auto& ss : config["chain_psmiles_list"]) {
+            std::cout << "  " << ss << "\n";
+        }
+        std::cout << "  ]" << std::endl;
+    }
+
+    if (result.count("random")) {
+        config["random_polymerization"] = result["random"].as<bool>();
+        std::cout << "Random Polymerization: " << (config["random_polymerization"] ? "Yes" : "No") << std::endl;
+    }
+
+    if (result.count("maximum")) {
+        config["chain_max_polymerization_degree"] = result["maximum"].as<int>();
+        std::cout << "Chain_max_polymerization_degree: " << config["chain_max_polymerization_degree"] << std::endl;
+    }
+
+    if (result.count("opti")) {
+        config["optimize_size"] = result["opti"].as<int>();
+        std::cout << "Optimize Size: " << config["optimize_size"] << std::endl;
+    }
+
+    if (result.count("output")) {
+        config["output_directory_path"] = result["output"].as<std::string>();
+        std::cout << "Output directory path has been changed to: " << config["output_directory_path"] << std::endl;
+    }
+
+    if (result.count("info")) {
+        config["file_info"] = result["info"].as<std::string>();
+        std::cout << "File Info: " << config["file_info"] << std::endl;
+    }
+
+    if (result.count("verbose")) {
+        config["verbose"] = result["verbose"].as<bool>();
+        std::cout << "Verbose mode " << (config["verbose"] ? "enabled" : "disabled") << "." << std::endl;
+    }
+
+    if (result.count("threads")) {
+        config["threads"] = result["threads"].as<int>();
+        std::cout << "Threads number: " << config["threads"] << std::endl;
     }
 
     if (save_config(config, config_filename)) {

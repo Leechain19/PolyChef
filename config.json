@@ -1,14 +1,10 @@
 {
-    "polymer_type": "chain",
-    "crosslinks_psmiles_list": ["O=C(NCCCC(CCCNC(N[*])=O)CCNC(N[*])=O)N[*]", "C(C(COCCOCC[*])COCCOCC[*])OCCOCC[*]"],
-    "crosslinks_numbers": [3, 3],
-    "crosslinks_poly_type": [[0, 0, 0], [1, 1, 1]],
-    "cross_poly_connectivity": [[0, 1]],
-    "crosslinks_pose_random": true,
-    "crosslinks_pose": [],
-    "crosslinking_percentage": 0.75,
-    "crosslinks_extension_size": 10,
-    "crosslinks_random_pose_distance": 60,
+    "polymer_type": "crosslink",
+
+    "crosslinker_mol2_list": ["./test.mol2"],
+    "crosslinker_types": [0, 1, 2, 4, 6, 7],
+    "crosslinking_network": [[1,2,3,4], [0,0,0,0]],
+    "crosslinking_curves": ["curve1.csv", "curve2.csv"],
 
     "chain_curve_list": [
         "../inputs/obstacle/Ball_x30.csv",
@@ -26,13 +22,9 @@
     "random_polymerization": false,
     "chain_max_polymerization_degree": 10000,
     "optimize_size": 1,
-    
-    "fasta_sequence": "",
-    "box_size": [1000000, 1000000, 1000000],
-    "seed": 114514,
+
     "output_directory_path": "../data",
     "file_info": "NO_INFO",
     "verbose": false,
-    "custfunc": "",
     "threads": 16
 }
