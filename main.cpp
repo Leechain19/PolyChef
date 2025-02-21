@@ -136,34 +136,6 @@ void createDirectory(const std::string& path) {
 
 void buildSystemWithScatter(const std::string& path, const std::vector<std::string>& target_points_paths, const std::vector<std::shared_ptr<Graph>>& sequence,
                             int degree_of_polymerization, bool random_polymerization = false, int optimize_size = 1, bool verbose = false, double bad_signal_cost = 10000.0, const std::string& file_info = "NO_INFO") {
-    std::cout << "Build System..." << std::endl;
-    auto tree = std::make_shared<Grid>(5.0);
-    int string_number = target_points_paths.size();
-
-    for (int i = 0; i < string_number; i ++) {
-        std::vector<Position> target_points = getScatterFromCSV(target_points_paths[i]);
-        std::cout << std::string(50, '=') << std::endl;
-        std::cout << "String ID: " << i << std::endl;
-
-        std::string file_name = path + "/string_" + std::to_string(i) + ".mol2";
-        std::string adj_file_name = path + "/string_" + std::to_string(i) + "_adj";
-        std::string loss_file_name = path + "/string_" + std::to_string(i) + "_loss";
-        std::cout << "Path: " << path << std::endl;
-
-        auto g_ptr = std::make_shared<Graph>();
-        auto loss_vector_ptr = std::make_unique<std::vector<std::pair<double, double>>>();
-        curveSpreading(target_points, g_ptr, tree, sequence, degree_of_polymerization, 5.0f, 5, random_polymerization, optimize_size, verbose, bad_signal_cost, loss_vector_ptr);
-
-        g_ptr->makeEnd("H");
-        chemio::writeMol2File(file_name, adj_file_name, g_ptr, file_info);
-        chemio::writeLoss2File(loss_file_name, loss_vector_ptr);
-        std::cout << std::string(50, '=') << std::endl;
-    }
-}
-
-
-void buildChainBasedCurve(const std::string& output_path, const std::vector<std::string>& smiles_list, const std::vector<std::string>& chain_curve_list, int degree_of_polymerization = 5000,
-                          bool random_polymerization = true, int optimize_size = 1, bool verbose = false, const std::string& file_info = "NO_INFO") {
 
 }
 
@@ -264,13 +236,41 @@ void solve(const std::string& filename) {
 
     // chain type
     if (startsWith(polymer_type, "chain")) {
-        buildSystemWithScatter(saving_dir, chain_curve_list, sequence, chain_max_polymerization_degree, random_polymerization, optimize_size, verbose, 10000.0, file_info);
+
+        std::cout << "Build System [Chains] ..." << std::endl;
+        auto tree = std::make_shared<Grid>(5.0);
+        int string_number = chain_curve_list.size();
+        std::cout << "Path: " << saving_dir << std::endl;
+
+        for (int i = 0; i < string_number; i ++) {
+            std::vector<Position> target_points = getScatterFromCSV(chain_curve_list[i]);
+            std::cout << std::string(50, '=') << std::endl;
+            std::cout << "String ID: " << i << std::endl;
+
+            std::string mol2_file_name = saving_dir + "/string_" + std::to_string(i) + ".mol2";
+            std::string adj_file_name = saving_dir + "/string_" + std::to_string(i) + "_adj";
+            std::string loss_file_name = saving_dir + "/string_" + std::to_string(i) + "_loss";
+
+            constexpr double bad_signal_cost = 10000.0;
+
+            auto g_ptr = std::make_shared<Graph>();
+            auto loss_vector_ptr = std::make_unique<std::vector<std::pair<double, double>>>();
+            curveSpreading(target_points, g_ptr, tree, sequence, chain_max_polymerization_degree, 5.0f, 5, random_polymerization, optimize_size, verbose, bad_signal_cost, loss_vector_ptr);
+
+            g_ptr->makeEnd("H");
+            chemio::writeMol2File(mol2_file_name, adj_file_name, g_ptr, file_info);
+            chemio::writeLoss2File(loss_file_name, loss_vector_ptr);
+            std::cout << std::string(50, '=') << std::endl;
+        }
         std::cout << "Finish!" << std::endl;
         return;
     }
 
     // crosslink type
     if (startsWith(polymer_type, "cross")) {
+
+        std::cout << "Build System [CrossLinks] ..." << std::endl;
+        std::cout << "Path: " << saving_dir << std::endl;
         // type: crosslink polymer
         std::vector<std::string> crosslinker_mol2_list;
         readVectorFromJSON(j, crosslinker_mol2_list, STRINGIFY(crosslinker_mol2_list));
@@ -353,6 +353,11 @@ void solve(const std::string& filename) {
         for (int i = 0; i < (int)crosslinkers.size() ; i ++ ) {
             cls->calcChainGraphs(i, sequence, chain_max_polymerization_degree, random_polymerization, optimize_size);
         }
+        std::string mol2_file_name = saving_dir + "/crosslink.mol2";
+        std::string adj_file_name = saving_dir + "/crosslink_adj";
+
+        chemio::writeMol2File(mol2_file_name, adj_file_name, cls, file_info);
+        std::cout << "Finish!" << std::endl;
         return;
     }
 

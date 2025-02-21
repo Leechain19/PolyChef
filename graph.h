@@ -25,12 +25,13 @@
 #include <queue>
 #include <fstream>
 
-class DSU {
+
+class [[maybe_unused]] DSU {
 private:
     int n;
     std::vector<int> f, siz;
 public:
-    explicit DSU(int n);
+    [[maybe_unused]] explicit DSU(int n);
     ~DSU() = default;
 
     int leader(int x);

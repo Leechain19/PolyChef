@@ -590,7 +590,7 @@ void chemio::writeLoss2File(const std::string& loss_file_name, const std::unique
     std::cout << "The file named " << loss_file_name << " has been finished" << std::endl;
 }
 
-void chemio::writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::shared_ptr<CrosslinkingSystem>& cls, const std::string& file_info) {
+void chemio::writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::unique_ptr<CrosslinkingSystem>& cls, const std::string& file_info) {
     std::ofstream outFile(file_name);
     if (!outFile.is_open()) {
         std::cerr << "Error to open " << file_name << std::endl;

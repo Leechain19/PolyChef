@@ -46,7 +46,7 @@ namespace chemio {
 
     std::string getAtomType(const std::string& name, int bond_num, bool ar = false);
     void writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::shared_ptr<Graph>& g, const std::string& file_info);
-    void writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::shared_ptr<CrosslinkingSystem>& cls, const std::string& file_info);
+    void writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::unique_ptr<CrosslinkingSystem>& cls, const std::string& file_info);
     void writeLoss2File(const std::string& loss_file_name, const std::unique_ptr<std::vector<std::pair<double, double>>>& loss_vec_ptr);
 }
 

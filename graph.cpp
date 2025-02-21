@@ -5,7 +5,7 @@
 #include "graph.h"
 
 // DSU
-DSU::DSU(int n) : n(n), f(n), siz(n, 1) {
+[[maybe_unused]] DSU::DSU(int n) : n(n), f(n), siz(n, 1) {
     std::iota(f.begin(), f.end(), 0);
 }
 

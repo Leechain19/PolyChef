@@ -3,6 +3,11 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+SINGLE_BOND = "1"
+DOUBLE_BOND = "2"
+TRIPLE_BOND = "3"
+AROMATIC_BOND = "ar"
+
 def read_smi(smi):
     mol = Chem.MolFromSmiles(smi)
     # convert to 3D
@@ -56,7 +61,7 @@ def read_smi(smi):
             poly_cache.append((hashing[end], x, y, z))
         else:
             tp = bond.GetBondType()
-            Type = '2' if tp == Chem.rdchem.BondType.DOUBLE else ('3' if tp == Chem.rdchem.BondType.TRIPLE else ('ar' if tp == Chem.rdchem.BondType.AROMATIC else '1'))
+            Type = DOUBLE_BOND if tp == Chem.rdchem.BondType.DOUBLE else (TRIPLE_BOND if tp == Chem.rdchem.BondType.TRIPLE else (AROMATIC_BOND if tp == Chem.rdchem.BondType.AROMATIC else SINGLE_BOND))
             # g.add_edge(From=hashing[start], To=hashing[end], Type=Type)
             # g.add_edge(From=hashing[end], To=hashing[start], Type=Type)
             edge_cache.append((hashing[start], hashing[end], Type))
