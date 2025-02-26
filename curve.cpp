@@ -242,13 +242,61 @@ std::vector<Position> getScatterFromCSV(const std::string& path, bool header) {
     if (header)
         std::getline(file, line);
 
+    int line_id = 1;
     while (std::getline(file, line)) {
+        if (line.empty()) {
+            line_id ++;
+            continue;
+        }
         std::istringstream ss(line);
         float x, y, z;
-        std::getline(ss, token, ','); x = static_cast<float>(std::stod(token));
-        std::getline(ss, token, ','); y = static_cast<float>(std::stod(token));
-        std::getline(ss, token, ','); z = static_cast<float>(std::stod(token));
-        points.emplace_back(x, y, z);
+        bool valid = true;
+
+        // 读取 x 坐标
+        if (std::getline(ss, token, ',') &&!token.empty()) {
+            try {
+                x = static_cast<float>(std::stod(token));
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Invalid value for x: " << token << " in line: " << line_id << std::endl;
+                valid = false;
+            }
+        } else {
+            std::cerr << "Missing x value in line: " << line_id << std::endl;
+            valid = false;
+        }
+
+        // 读取 y 坐标
+        if (valid && std::getline(ss, token, ',') &&!token.empty()) {
+            try {
+                y = static_cast<float>(std::stod(token));
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Invalid value for y: " << token << " in line: " << line_id << std::endl;
+                valid = false;
+            }
+        } else {
+            std::cerr << "Missing y value in line: " << line_id << std::endl;
+            valid = false;
+        }
+
+        // 读取 z 坐标
+        if (valid && std::getline(ss, token) &&!token.empty()) {
+            try {
+                z = static_cast<float>(std::stod(token));
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Invalid value for z: " << token << " in line: " << line_id << std::endl;
+                valid = false;
+            }
+        } else {
+            std::cerr << "Missing z value in line: " << line_id << std::endl;
+            valid = false;
+        }
+
+        // 如果所有值都有效，则添加到 points 向量中
+        if (valid) {
+            points.emplace_back(x, y, z);
+        }
+        line_id ++;
     }
+
     return calCRS(points, 0.8);
 }

@@ -134,10 +134,10 @@ void createDirectory(const std::string& path) {
     }
 }
 
-void buildSystemWithScatter(const std::string& path, const std::vector<std::string>& target_points_paths, const std::vector<std::shared_ptr<Graph>>& sequence,
-                            int degree_of_polymerization, bool random_polymerization = false, int optimize_size = 1, bool verbose = false, double bad_signal_cost = 10000.0, const std::string& file_info = "NO_INFO") {
-
-}
+//void buildSystemWithScatter(const std::string& path, const std::vector<std::string>& target_points_paths, const std::vector<std::shared_ptr<Graph>>& sequence,
+//                            int degree_of_polymerization, bool random_polymerization = false, int optimize_size = 1, bool verbose = false, double bad_signal_cost = 10000.0, const std::string& file_info = "NO_INFO") {
+//
+//}
 
 void InitializeOpenMP(int target_thread_num) {
     std::cout << "Threads: " << target_thread_num << std::endl;
@@ -244,6 +244,7 @@ void solve(const std::string& filename) {
 
         for (int i = 0; i < string_number; i ++) {
             std::vector<Position> target_points = getScatterFromCSV(chain_curve_list[i]);
+
             std::cout << std::string(50, '=') << std::endl;
             std::cout << "String ID: " << i << std::endl;
 
