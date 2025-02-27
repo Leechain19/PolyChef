@@ -4,5 +4,7 @@ inputs/
 
 cmake-build-debug-chem2-131/
 
+cmake-build-release-chem2-131/
+
 .idea/
 
