@@ -238,7 +238,7 @@ void solve(const std::string& filename) {
     if (startsWith(polymer_type, "chain")) {
 
         std::cout << "Build System [Chains] ..." << std::endl;
-        auto tree = std::make_shared<Grid>(5.0);
+        auto tree = std::make_shared<Grid>();
         int string_number = chain_curve_list.size();
         std::cout << "Path: " << saving_dir << std::endl;
 

@@ -31,7 +31,7 @@ private:
     int _size;
     std::unordered_map<std::array<int, 3>, GridCell, hashing::array_hash<int, 3>> mp;
 public:
-    explicit Grid(float interval = 5.0);
+    explicit Grid(float interval = 4.0);
     virtual ~Grid();
     [[nodiscard]] int _getpos(float x) const;
     [[nodiscard]] float interval() const;
