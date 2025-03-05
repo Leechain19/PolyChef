@@ -1,10 +1,11 @@
 {
     "polymer_type": "crosslink",
 
-    "crosslinker_mol2_list": ["./test.mol2"],
-    "crosslinker_types": [0, 1, 2, 4, 6, 7],
-    "crosslinking_network": [[1,2,3,4], [0,0,0,0]],
-    "crosslinking_curves": ["curve1.csv", "curve2.csv"],
+    "crosslinker_mol2_list": ["../inputs/newmol.mol2"],
+    "crosslinking_network": [
+        [0,0,0,1]
+    ],
+    "crosslinking_curves": ["../inputs/testCurve.csv"],
 
     "chain_curve_list": [
         "../inputs/obstacle/Ball_x30.csv",

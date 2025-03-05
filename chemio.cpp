@@ -597,24 +597,24 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
         return;
     }
 
-    outFile << "###" << std::endl;
+    outFile << "###\n";
     std::time_t now = std::time(nullptr);
     char* time_str = std::ctime(&now);
     outFile << "### Created by PolyChef-cpp17 on " << time_str;
-    outFile << "###" << std::endl;
-    outFile << std::endl;
+    outFile << "###\n";
+    outFile << "\n";
 
-    outFile << "@<TRIPOS>MOLECULE" << std::endl;
+    outFile << "@<TRIPOS>MOLECULE\n";
     outFile << file_info << std::endl;
     int atom_sum = cls->getAtomSize();
     int edge_sum = cls->getEdgeSize();
 
     outFile << atom_sum << ' ' << edge_sum << ' ' << 1 << ' ' << 0 << ' ' << 0 << std::endl;
 
-    outFile << "SMALL" << std::endl;
-    outFile << "USER_CHARGES" << std::endl;
-    outFile << std::endl << std::endl;
-    outFile << "@<TRIPOS>ATOM" << std::endl;
+    outFile << "SMALL\n";
+    outFile << "USER_CHARGES\n";
+    outFile << "\n\n";
+    outFile << "@<TRIPOS>ATOM\n" << std::flush;
 
 
     // crosslinker first

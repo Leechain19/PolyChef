@@ -20,21 +20,6 @@
 
 #define STRINGIFY(x) (#x)
 
-#ifndef DUBUG
-#define DUBGE
-std::string to_string(std::string s) { return '"' + s + '"'; }
-std::string to_string(const char *s) { return to_string((std::string) s); }
-std::string to_string(bool b) { return (b ? "true" : "false"); }
-std::string to_string(int x) { return std::to_string(x); }
-template<typename A, typename B>
-std::string to_string(std::pair<A, B> p) { return "(" + to_string(p.first) + ", " + to_string(p.second) + ")"; }
-template<typename A>
-std::string to_string(A v) { bool first = true; std::string res = "{"; for(const auto &x : v) { if(!first) { res += ", "; } first = false; res += to_string(x);} res += "}"; return res; }
-void debug_out() { std::cout << std::endl; }
-template<typename Head, typename... Tail> void debug_out(Head H, Tail... T) { std::cout << " " << to_string(H); debug_out(T...);}
-#define dbg(...) std::cout << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
-#endif
-
 using json = nlohmann::json;
 constexpr int inf = 1e9;
 using Options = cxxopts::Options;
@@ -133,11 +118,6 @@ void createDirectory(const std::string& path) {
         std::cerr << "Filesystem error: " << e.what() << std::endl;
     }
 }
-
-//void buildSystemWithScatter(const std::string& path, const std::vector<std::string>& target_points_paths, const std::vector<std::shared_ptr<Graph>>& sequence,
-//                            int degree_of_polymerization, bool random_polymerization = false, int optimize_size = 1, bool verbose = false, double bad_signal_cost = 10000.0, const std::string& file_info = "NO_INFO") {
-//
-//}
 
 void InitializeOpenMP(int target_thread_num) {
     std::cout << "Threads: " << target_thread_num << std::endl;
@@ -276,9 +256,7 @@ void solve(const std::string& filename) {
         std::vector<std::string> crosslinker_mol2_list;
         readVectorFromJSON(j, crosslinker_mol2_list, STRINGIFY(crosslinker_mol2_list));
 
-        std::vector<int> crosslinker_types;
-        readVectorFromJSON(j, crosslinker_types, STRINGIFY(crosslinker_types));
-        int crosslinker_number = (int)crosslinker_types.size();
+        int crosslinker_number = (int)crosslinker_mol2_list.size();
 
         std::vector<std::array<int, 4>> crosslinking_network;
         readVectorFromJSON(j, crosslinking_network, STRINGIFY(crosslinking_network));
@@ -288,15 +266,6 @@ void solve(const std::string& filename) {
 
         // check inputs
         assert((int)crosslinking_curves.size() == (int)crosslinking_network.size());
-
-        int type_size = (int)crosslinker_mol2_list.size();
-
-        // 查看type是否合法
-        for (const auto& x : crosslinker_types) {
-            if (x < 0 || x >= type_size) {
-                throw std::runtime_error("CrossLinker type Error");
-            }
-        }
 
         // 查看文件是否存在
         for (const auto& file : crosslinker_mol2_list) {
@@ -310,19 +279,21 @@ void solve(const std::string& filename) {
             }
         }
 
-        std::vector<std::shared_ptr<CrossLinker>> crosslinkers(type_size, nullptr);
-        for (int i = 0; i < type_size; i ++) {
+        std::vector<std::shared_ptr<CrossLinker>> crosslinkers(crosslinker_number, nullptr);
+        std::vector<std::vector<int>> seen(crosslinker_number);
+
+        for (int i = 0; i < crosslinker_number; i ++) {
             crosslinkers[i] = chemio::buildCrossLinkerFromMol2(crosslinker_mol2_list[i]);
+            seen[i].resize(crosslinkers[i]->getPolysSize(), false);
         }
 
         // 检查poly是否存在
-        auto checkPolyAndGetPosition = [&crosslinkers, &crosslinker_types](int who, int poly_id) -> Position {
-            int type = crosslinker_types.at(who);
-            int poly_size = crosslinkers.at(type)->getPolysSize();
+        auto checkPolyAndGetPosition = [&crosslinkers](int who, int poly_id) -> Position {
+            int poly_size = crosslinkers.at(who)->getPolysSize();
             if (poly_id < 0 || poly_id >= poly_size) {
-                throw std::runtime_error("Error wrong poly: " + std::to_string(who) + "- TypeID: " + std::to_string(type) + " - PolyID: " + std::to_string(poly_id));
+                throw std::runtime_error("Error wrong poly: " + std::to_string(who) + "- TypeID: " + std::to_string(who) + " - PolyID: " + std::to_string(poly_id));
             }
-            return crosslinkers[type]->getPolyPosition(poly_id);
+            return crosslinkers[who]->getPolyPosition(poly_id);
         };
 
         std::vector<std::vector<Position>> curve_points((int)crosslinking_curves.size());
@@ -333,6 +304,15 @@ void solve(const std::string& filename) {
             cv = getScatterFromCSV(crosslinking_curves[i]);
 
             const auto& net = crosslinking_network[i];
+            if (seen[net[0]][net[1]]) {
+                throw std::runtime_error("Repeated poly: " + std::to_string(net[0]) + "-" + std::to_string(net[1]));
+            }
+            if (seen[net[2]][net[3]]) {
+                throw std::runtime_error("Repeated poly: " + std::to_string(net[2]) + "-" + std::to_string(net[3]));
+            }
+            seen[net[0]][net[1]] = true;
+            seen[net[2]][net[3]] = true;
+
             auto poly_position1 = checkPolyAndGetPosition(net[0], net[1]);
             auto poly_position2 = checkPolyAndGetPosition(net[2], net[3]);
 
@@ -350,15 +330,27 @@ void solve(const std::string& filename) {
             }
         }
 
+        std::cout << "========== Curves Generation Finish =============" << std::endl;
+
         auto cls = std::make_unique<CrosslinkingSystem>(crosslinkers, crosslinking_network, curve_points);
-        for (int i = 0; i < (int)crosslinkers.size() ; i ++ ) {
-            cls->calcChainGraphs(i, sequence, chain_max_polymerization_degree, random_polymerization, optimize_size);
-        }
+        cls->calcChainGraphs(sequence, chain_max_polymerization_degree, random_polymerization, optimize_size);
+        cls->makeEnd(std::string("H"));
+
         std::string mol2_file_name = saving_dir + "/crosslink.mol2";
         std::string adj_file_name = saving_dir + "/crosslink_adj";
 
         chemio::writeMol2File(mol2_file_name, adj_file_name, cls, file_info);
         std::cout << "Finish!" << std::endl;
+
+        int cnt_poly = 0, sum_poly = 0;
+        for (const auto& vec : seen) {
+            sum_poly += (int)vec.size();
+            for (const auto& t : vec) {
+                cnt_poly += t;
+            }
+        }
+        float degree_crosslinking = (sum_poly ? (float)cnt_poly / (float)sum_poly : 0.0f);
+        std::cout << "Degree of crosslinking: " << std::fixed << std::setprecision(2) << degree_crosslinking * 100 << "%" << std::endl;
         return;
     }
 

@@ -61,6 +61,10 @@ public:
 
     void makeEnd(int poly_index, const std::string& end_symbol = "H");
 
+    void makePolyUsedFlag(int index);
+
+    bool checkPolyUsedFlag(int index);
+
     friend std::ostream& operator<<(std::ostream& os, const CrossLinker& cl);
 
 private:
@@ -68,6 +72,7 @@ private:
     std::vector<std::shared_ptr<Atom>> vertices;
     std::vector<std::vector<std::shared_ptr<Edge>>> edges;
     std::vector<std::shared_ptr<Poly>> polys;
+    std::vector<int> poly_seen;
     std::vector<int> is_ar;
 };
 
@@ -102,7 +107,10 @@ public:
 
     [[nodiscard]] const std::vector<std::array<int, 4>>& getCrosslinkerNetwork() const ;
 
-    void calcChainGraphs(int chain_index, const std::vector<std::shared_ptr<Graph>>& sequence,
+    void spreadingChain(int chain_index, const std::vector<std::shared_ptr<Graph>> &sequence,
+                        int degree_polymerization, bool random_polymerization, int optimize_size);
+
+    void calcChainGraphs(const std::vector<std::shared_ptr<Graph>>& sequence,
                          int degree_polymerization, bool random_polymerization = false, int optimize_size = 1);
 
     void makeEnd(const std::string& end_system);
@@ -115,7 +123,6 @@ private:
     std::vector<std::vector<Position>> point_lists_;
     std::shared_ptr<Grid> tree_ptr_;
     std::vector<std::shared_ptr<Graph>> chain_graphs_;
-    std::vector<std::vector<int>> poly_seen_;
 };
 
 #endif //ATOM_SEARCH_CPP_CROSSLINKER_H

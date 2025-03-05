@@ -203,7 +203,7 @@ public:
 
     void bfsRotateScale(int root, int fa, const Eigen::Matrix3f& rod, float scale_ratio);
 
-    void bfsRotateScaleTranslation(int root, int fa, const Eigen::Matrix3f& rod, float scale_ratio, float dx, float dy, float dz);
+    void bfsRotateScaleTranslation(int root, int fa, const Eigen::Matrix3f& rod, float scale_ratio, Vector dvec);
 
     void attachPoint(const Position& target_poly_point, const Vector& target_direction);
 

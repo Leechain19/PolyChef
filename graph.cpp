@@ -612,9 +612,7 @@ void Graph::bfsRotateScale(int root, int fa, const Eigen::Matrix3f& rod, float s
     _bfs_process(root, fa, func);
 }
 
-void Graph::bfsRotateScaleTranslation(int root, int fa, const Eigen::Matrix3f& rod, float scale_ratio, float dx, float dy, float dz) {
-    Vector dvec;
-    dvec << dx, dy, dz;
+void Graph::bfsRotateScaleTranslation(int root, int fa, const Eigen::Matrix3f& rod, float scale_ratio, Vector dvec) {
     auto func = [&rod, &scale_ratio, &dvec](const Position& pos, const Position& ver) {
         return _point_rotate_scale_translation(pos, ver, rod, scale_ratio, dvec);
     };
