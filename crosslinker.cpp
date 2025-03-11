@@ -334,10 +334,10 @@ void CrosslinkingSystem::spreadingChain(int chain_index, const std::vector<std::
     crosslinkers_[cid2]->makePolyUsedFlag(cpid2);
 }
 
-void CrosslinkingSystem::calcChainGraphs(const std::vector<std::shared_ptr<Graph>> &sequence,
+void CrosslinkingSystem::calcChainGraphs(const std::vector<std::vector<std::shared_ptr<Graph>>>& sequences,
                                     int degree_polymerization, bool random_polymerization, int optimize_size) {
     for (int i = 0; i < crosslinker_network_.size(); i ++) {
-        spreadingChain(i, sequence, degree_polymerization, random_polymerization, optimize_size);
+        spreadingChain(i, sequences.at(i), degree_polymerization, random_polymerization, optimize_size);
     }
 }
 

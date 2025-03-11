@@ -1,5 +1,5 @@
 {
-    "polymer_type": "crosslink",
+    "polymer_type": "chain",
 
     "crosslinker_mol2_list": ["../inputs/newmol.mol2"],
     "crosslinking_network": [
@@ -8,18 +8,9 @@
     "crosslinking_curves": ["../inputs/testCurve.csv"],
 
     "chain_curve_list": [
-        "../inputs/obstacle/Ball_x30.csv",
-        "../inputs/obstacle/Cube_x30.csv",
-        "../inputs/obstacle/Ring_1_x30.csv",
-        "../inputs/obstacle/Ring_2_x30.csv",
-        "../inputs/obstacle/Ring_3_x30.csv",
-        "../inputs/obstacle/SmallBall_1_x30.csv",
-        "../inputs/obstacle/SmallBall_2_x30.csv",
-        "../inputs/obstacle/SmallBall_3_x30.csv",
-        "../inputs/obstacle/Tetrahedron_x30.csv",
-        "../inputs/obstacle/TargetLine_x30.csv"
+        "../inputs/obstacle/Cube_x30.csv"
     ],
-    "chain_psmiles_list": ["[*]CC[*]"],
+    "chain_psmiles_list": [["[*]CC[*]"]],
     "random_polymerization": false,
     "chain_max_polymerization_degree": 10000,
     "optimize_size": 1,

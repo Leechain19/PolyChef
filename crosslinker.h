@@ -110,7 +110,7 @@ public:
     void spreadingChain(int chain_index, const std::vector<std::shared_ptr<Graph>> &sequence,
                         int degree_polymerization, bool random_polymerization, int optimize_size);
 
-    void calcChainGraphs(const std::vector<std::shared_ptr<Graph>>& sequence,
+    void calcChainGraphs(const std::vector<std::vector<std::shared_ptr<Graph>>>& sequences,
                          int degree_polymerization, bool random_polymerization = false, int optimize_size = 1);
 
     void makeEnd(const std::string& end_system);

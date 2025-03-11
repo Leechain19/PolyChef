@@ -176,7 +176,7 @@ void solve(const std::string& filename) {
     std::vector<std::string> chain_curve_list;
     readVectorFromJSON(j, chain_curve_list, STRINGIFY(chain_curve_list));
 
-    std::vector<std::string> chain_psmiles_list;
+    std::vector<std::vector<std::string>> chain_psmiles_list;
     readVectorFromJSON(j, chain_psmiles_list, STRINGIFY(chain_psmiles_list));
 
     bool random_polymerization = false;
@@ -199,15 +199,7 @@ void solve(const std::string& filename) {
     auto now_time = getCurrentTimeAsString();
     std::cout << "Time: " << now_time << std::endl;
 
-    std::string system = connectStringVectorAsOne(chain_psmiles_list);
-    std::cout << "System: " << system << std::endl;
-
     // ===================
-
-    std::vector<std::shared_ptr<Graph>> sequence;
-    for (const auto& smiles : chain_psmiles_list) {
-        sequence.emplace_back(chemio::buildGraphFromPSmiles(smiles));
-    }
 
     auto saving_dir = output_directory_path;
     if (saving_dir.empty() or saving_dir.back() != '/') saving_dir.push_back('/');
@@ -217,6 +209,12 @@ void solve(const std::string& filename) {
     // chain type
     if (startsWith(polymer_type, "chain")) {
 
+        if (chain_psmiles_list.size() != chain_curve_list.size()) {
+            std::string err_info = std::string("Input Error: ") + "Chain Curve list size: " +
+                    std::to_string(chain_psmiles_list.size()) + " Chain psmiles list size: " + std::to_string(chain_psmiles_list.size());
+            throw std::runtime_error(err_info);
+        }
+
         std::cout << "Build System [Chains] ..." << std::endl;
         auto tree = std::make_shared<Grid>();
         int string_number = chain_curve_list.size();
@@ -224,6 +222,10 @@ void solve(const std::string& filename) {
 
         for (int i = 0; i < string_number; i ++) {
             std::vector<Position> target_points = getScatterFromCSV(chain_curve_list[i]);
+            std::vector<std::shared_ptr<Graph>> sequence;
+            for (const auto& smiles: chain_psmiles_list[i]) {
+                sequence.emplace_back(chemio::buildGraphFromPSmiles(smiles));
+            }
 
             std::cout << std::string(50, '=') << std::endl;
             std::cout << "String ID: " << i << std::endl;
@@ -265,7 +267,13 @@ void solve(const std::string& filename) {
         readVectorFromJSON(j, crosslinking_curves, STRINGIFY(crosslinking_curves));
 
         // check inputs
-        assert((int)crosslinking_curves.size() == (int)crosslinking_network.size());
+        if (chain_psmiles_list.size() != crosslinking_curves.size() || crosslinking_curves.size() != crosslinking_network.size()) {
+            std::string err_info = std::string("Input Error: ") +
+                                   " Chain psmiles list size: " + std::to_string(chain_psmiles_list.size()) +
+                                   " Crosslinking Curves size: " + std::to_string(crosslinking_curves.size()) +
+                                   " Crosslinking Network size: " + std::to_string(crosslinking_network.size());
+            throw std::runtime_error(err_info);
+        }
 
         // 查看文件是否存在
         for (const auto& file : crosslinker_mol2_list) {
@@ -333,7 +341,15 @@ void solve(const std::string& filename) {
         std::cout << "========== Curves Generation Finish =============" << std::endl;
 
         auto cls = std::make_unique<CrosslinkingSystem>(crosslinkers, crosslinking_network, curve_points);
-        cls->calcChainGraphs(sequence, chain_max_polymerization_degree, random_polymerization, optimize_size);
+        std::vector<std::vector<std::shared_ptr<Graph>>> sequences((int)chain_psmiles_list.size());
+        for (int i = 0; i < (int)chain_psmiles_list.size(); i ++) {
+            const auto& vec = chain_psmiles_list.at(i);
+            for (const auto& smiles : vec) {
+                sequences[i].emplace_back(chemio::buildGraphFromPSmiles(smiles));
+            }
+        }
+
+        cls->calcChainGraphs(sequences, chain_max_polymerization_degree, random_polymerization, optimize_size);
         cls->makeEnd(std::string("H"));
 
         std::string mol2_file_name = saving_dir + "/crosslink.mol2";
@@ -364,7 +380,7 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     ("type", "Task type: Chain or Crosslinks", cxxopts::value<std::string>())
 
     ("i,input", "Input files list", cxxopts::value<std::vector<std::string>>())
-    ("p,psmiles", "Chain PSMILES list", cxxopts::value<std::vector<std::string>>())
+    ("p,psmiles", "Chain PSMILES list", cxxopts::value<std::vector<std::vector<std::string>>>())
     ("r,random", "Random polymerization or not", cxxopts::value<bool>())
     ("m,maximum", "Maximum length of chain", cxxopts::value<int>())
     ("opti", "Optimize Size", cxxopts::value<int>())
@@ -403,10 +419,14 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     }
 
     if (result.count("psmiles")) {
-        config["chain_psmiles_list"] = result["psmiles"].as<std::vector<std::string>>();
+        config["chain_psmiles_list"] = result["psmiles"].as<std::vector<std::vector<std::string>>>();
         std::cout << "Chain PSMILES list: [\n";
-        for (const auto& ss : config["chain_psmiles_list"]) {
-            std::cout << "  " << ss << "\n";
+        for (const auto& vec : config["chain_psmiles_list"]) {
+            std::cout << "==> ";
+            for (const auto& ss : vec) {
+                std::cout << ss << " ";
+            }
+            std::cout << "\n";
         }
         std::cout << "  ]" << std::endl;
     }
