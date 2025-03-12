@@ -43,9 +43,6 @@ message(STATUS "Python3 Libraries: ${Python3_LIBRARIES}")
 # Eigen3
 include_directories("/usr/local/include/eigen3")
 
-# cuda
-#include_directories("/usr/local/cuda/include")
-
 # Python 库文件
 link_directories("/home/public/miniconda3/envs/develop/lib/python3.8/site-packages")
 #link_libraries("/home/public/miniconda3/envs/develop/lib/libpython3.8.so")

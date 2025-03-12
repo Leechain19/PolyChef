@@ -342,6 +342,7 @@ void solve(const std::string& filename) {
 
         auto cls = std::make_unique<CrosslinkingSystem>(crosslinkers, crosslinking_network, curve_points);
         std::vector<std::vector<std::shared_ptr<Graph>>> sequences((int)chain_psmiles_list.size());
+
         for (int i = 0; i < (int)chain_psmiles_list.size(); i ++) {
             const auto& vec = chain_psmiles_list.at(i);
             for (const auto& smiles : vec) {
@@ -473,9 +474,6 @@ void config(int argc, char* argv[], const std::string& config_filename) {
 
 void test() {
     const std::string path = "../inputs/test_mol.mol2";
-    auto g_ptr = chemio::buildGraphFromMol2(path);
-
-    std::cout << *g_ptr << std::endl;
 }
 
 int main(int argc, char* argv[]) {
