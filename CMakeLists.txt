@@ -25,6 +25,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 find_package(Python3 REQUIRED COMPONENTS Development)
 find_package(OpenMP REQUIRED)
 
+add_definitions(-DPYTHON_SCRIPT_PATH="${CMAKE_SOURCE_DIR}/script")
+
 if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")

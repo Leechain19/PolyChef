@@ -202,9 +202,7 @@ void solve(const std::string& filename) {
     // ===================
 
     auto saving_dir = output_directory_path;
-    if (saving_dir.empty() or saving_dir.back() != '/') saving_dir.push_back('/');
-    saving_dir += now_time;
-    createDirectory(saving_dir);
+    if (saving_dir.size() > 1 && saving_dir.back() == '/') saving_dir.pop_back();
 
     // chain type
     if (startsWith(polymer_type, "chain")) {
@@ -223,8 +221,9 @@ void solve(const std::string& filename) {
         for (int i = 0; i < string_number; i ++) {
             std::vector<Position> target_points = getScatterFromCSV(chain_curve_list[i]);
             std::vector<std::shared_ptr<Graph>> sequence;
+            PsmilesBuilder<Graph> builder;
             for (const auto& smiles: chain_psmiles_list[i]) {
-                sequence.emplace_back(chemio::buildGraphFromPSmiles(smiles));
+                sequence.emplace_back(builder.build(smiles));
             }
 
             std::cout << std::string(50, '=') << std::endl;
@@ -289,9 +288,9 @@ void solve(const std::string& filename) {
 
         std::vector<std::shared_ptr<CrossLinker>> crosslinkers(crosslinker_number, nullptr);
         std::vector<std::vector<int>> seen(crosslinker_number);
-
+        Mol2Builder<CrossLinker> mol2_builder;
         for (int i = 0; i < crosslinker_number; i ++) {
-            crosslinkers[i] = chemio::buildCrossLinkerFromMol2(crosslinker_mol2_list[i]);
+            crosslinkers[i] = mol2_builder.build(crosslinker_mol2_list[i]);
             seen[i].resize(crosslinkers[i]->getPolysSize(), false);
         }
 
@@ -342,11 +341,12 @@ void solve(const std::string& filename) {
 
         auto cls = std::make_unique<CrosslinkingSystem>(crosslinkers, crosslinking_network, curve_points);
         std::vector<std::vector<std::shared_ptr<Graph>>> sequences((int)chain_psmiles_list.size());
+        PsmilesBuilder<Graph> builder;
 
         for (int i = 0; i < (int)chain_psmiles_list.size(); i ++) {
             const auto& vec = chain_psmiles_list.at(i);
             for (const auto& smiles : vec) {
-                sequences[i].emplace_back(chemio::buildGraphFromPSmiles(smiles));
+                sequences[i].emplace_back(builder.build(smiles));
             }
         }
 
@@ -379,13 +379,11 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     Options options("polychef config", "Configure settings");
     options.add_options()
     ("type", "Task type: Chain or Crosslinks", cxxopts::value<std::string>())
-
     ("i,input", "Input files list", cxxopts::value<std::vector<std::string>>())
     ("p,psmiles", "Chain PSMILES list", cxxopts::value<std::vector<std::vector<std::string>>>())
     ("r,random", "Random polymerization or not", cxxopts::value<bool>())
     ("m,maximum", "Maximum length of chain", cxxopts::value<int>())
     ("opti", "Optimize Size", cxxopts::value<int>())
-
     ("o,output", "Output directory path", cxxopts::value<std::string>())
     ("info", "File info", cxxopts::value<std::string>())
     ("v,verbose", "Verbose", cxxopts::value<bool>())
@@ -397,6 +395,10 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     if (result.count("help")) {
         std::cout << options.help() << std::endl;
         return;
+    }
+
+    if (!fileExists(config_filename)) {
+        throw std::runtime_error("Configure File " + config_filename + " does not exist");
     }
 
     json config;
@@ -472,31 +474,34 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     }
 }
 
-void test() {
-    const std::string path = "../inputs/test_mol.mol2";
+void run(int argc, char* argv[], const std::string& config_filename) {
+    if (!fileExists(config_filename)) {
+        throw std::runtime_error("Configure File " + config_filename + " does not exist");
+    }
+    auto start = std::chrono::high_resolution_clock::now(); // start time
+    solve(config_filename);
+    auto end = std::chrono::high_resolution_clock::now(); // end time
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
     std::string cwd = std::filesystem::current_path();
     std::cout << "Current working directory: " << cwd << std::endl;
-    std::string config_filename = cwd + "/../config.json";
 
-    if (argc < 2) {
+    if (argc < 3) {
         std::cerr << "Usage: polychef <command> [options]\n"
         << "Commands:\n"
         << "  run     Run a task\n"
-        << ("  config  Configure settings in " + config_filename + "\n");
+        << ("  config  Configure \n");
         return 1;
     }
 
     std::string command = argv[1];
+    std::string config_filename = argv[2];
 
     if (command == "run") {
-        auto start = std::chrono::high_resolution_clock::now(); // start time
-        solve(config_filename);
-        auto end = std::chrono::high_resolution_clock::now(); // end time
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
+        run(argc, argv, config_filename);
     }
     else if (command == "config") {
         config(argc, argv, config_filename);
@@ -505,8 +510,6 @@ int main(int argc, char* argv[]) {
         // 抛出异常
         throw exception::InvalidParameterException("Unknown command: " + command);
     }
-
-//    test();
 
     return 0;
 }

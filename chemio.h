@@ -17,6 +17,7 @@
 #include <variant>
 #include <any>
 #include <filesystem>
+#include <functional>
 #include <type_traits>
 
 namespace chemio {
@@ -49,5 +50,69 @@ namespace chemio {
     void writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::unique_ptr<CrosslinkingSystem>& cls, const std::string& file_info);
     void writeLoss2File(const std::string& loss_file_name, const std::unique_ptr<std::vector<std::pair<double, double>>>& loss_vec_ptr);
 }
+
+template <typename T>
+struct TypeTraits;
+
+template <>
+struct TypeTraits<Graph> {
+    static std::shared_ptr<Graph> buildFromPSmiles(const std::string& psmiles) {
+        return chemio::buildGraphFromPSmiles(psmiles);
+    }
+    static std::shared_ptr<Graph> buildFromMol2(const std::string& path) {
+        return chemio::buildGraphFromMol2(path);
+    }
+};
+
+template <>
+struct TypeTraits<CrossLinker> {
+    static std::shared_ptr<CrossLinker> buildFromPSmiles(const std::string& psmiles) {
+        return chemio::buildCrossLinkerFromPSmiles(psmiles);
+    }
+    static std::shared_ptr<CrossLinker> buildFromMol2(const std::string& path) {
+        return chemio::buildCrossLinkerFromMol2(path);
+    }
+};
+
+template<typename T>
+class PsmilesBuilder {
+public:
+    PsmilesBuilder() = default;
+    ~PsmilesBuilder() = default;
+    PsmilesBuilder(const PsmilesBuilder<T>& o) = delete;
+    PsmilesBuilder<T>& operator=(const PsmilesBuilder<T>& o) = delete;
+
+    std::shared_ptr<T> build(const std::string& psmiles) {
+        auto it = memo_.find(psmiles);
+        if (it != memo_.end()) return it->second;
+        auto ret = TypeTraits<T>::buildFromPSmiles(psmiles);
+        memo_[psmiles] = ret;
+        return ret;
+    }
+
+private:
+    std::unordered_map<std::string, std::shared_ptr<T>> memo_{};
+};
+
+
+template<typename T>
+class Mol2Builder {
+public:
+    Mol2Builder() = default;
+    ~Mol2Builder() = default;
+    Mol2Builder(const Mol2Builder<T>& o) = delete;
+    Mol2Builder<T>& operator=(const Mol2Builder<T>& o) = delete;
+
+    std::shared_ptr<T> build(const std::string& path) {
+        auto it = memo_.find(path);
+        if (it != memo_.end()) return it->second;
+        auto ret = TypeTraits<T>::buildFromMol2(path);
+        memo_[path] = ret;
+        return ret;
+    }
+
+private:
+    std::unordered_map<std::string, std::shared_ptr<T>> memo_{};
+};
 
 #endif //ATOM_SEARCH_CPP_CHEMIO_H

@@ -161,7 +161,9 @@ std::shared_ptr<Graph> chemio::buildGraphFromPSmiles(const std::string& psmiles)
     }
 
     PyRun_SimpleString("import sys");
-    PyRun_SimpleString("sys.path.append('./../script')");
+    const char* pythonScriptPath = PYTHON_SCRIPT_PATH;
+    std::string simple_string = std::string("sys.path.append('") + std::string(pythonScriptPath) + std::string("')");
+    PyRun_SimpleString(simple_string.c_str());
 
     PyObject* module = PyImport_ImportModule("rdkit_helper");
 
