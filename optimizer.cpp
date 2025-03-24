@@ -47,6 +47,7 @@ std::pair<float, float> Optimizer::objective_fcn_pair(float angle) {
     if (!sz) {
         return {0.0f, 0.0f};
     }
+
     std::vector<Position> cur_atoms;
     int cur = 0;
     for (const auto& p : atoms_list) {
@@ -58,6 +59,7 @@ std::pair<float, float> Optimizer::objective_fcn_pair(float angle) {
 
     float lj = 0.0f;
     float val = 0.0f;
+    auto sz_mul = 1.0f / (float)sz;
 
     for (const auto& position : cur_atoms) {
         float sum = 0.0;
@@ -72,9 +74,9 @@ std::pair<float, float> Optimizer::objective_fcn_pair(float angle) {
             min_dist = 1e6f;
         }
         const float sigma = 3.5f;
-        lj += LJ_weight * static_cast<float>(pow(sigma / min_dist, 6));
+        lj += LJ_weight * static_cast<float>(qmi(sigma / min_dist, 6));
     }
-    return {val / (float)sz, lj / (float)sz};
+    return {val * sz_mul, lj * sz_mul};
 }
 
 float Optimizer::objective_fcn(float angle) {

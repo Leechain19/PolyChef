@@ -223,7 +223,10 @@ void solve(const std::string& filename) {
             std::vector<std::shared_ptr<Graph>> sequence;
             PsmilesBuilder<Graph> builder;
             for (const auto& smiles: chain_psmiles_list[i]) {
-                sequence.emplace_back(builder.build(smiles));
+                auto ptr = builder.build(smiles);
+                int mono_type = builder.getMonomerType(smiles);
+                ptr->setMonoTypeAll(mono_type);
+                sequence.emplace_back(std::move(ptr));
             }
 
             std::cout << std::string(50, '=') << std::endl;
@@ -290,7 +293,10 @@ void solve(const std::string& filename) {
         std::vector<std::vector<int>> seen(crosslinker_number);
         Mol2Builder<CrossLinker> mol2_builder;
         for (int i = 0; i < crosslinker_number; i ++) {
-            crosslinkers[i] = mol2_builder.build(crosslinker_mol2_list[i]);
+            auto ptr = mol2_builder.build(crosslinker_mol2_list[i]);
+            int mono_type = mol2_builder.getMonomerType(crosslinker_mol2_list[i]);
+            ptr->setMonoTypeAll(mono_type);
+            crosslinkers[i] = std::move(ptr);
             seen[i].resize(crosslinkers[i]->getPolysSize(), false);
         }
 
@@ -346,7 +352,10 @@ void solve(const std::string& filename) {
         for (int i = 0; i < (int)chain_psmiles_list.size(); i ++) {
             const auto& vec = chain_psmiles_list.at(i);
             for (const auto& smiles : vec) {
-                sequences[i].emplace_back(builder.build(smiles));
+                auto ptr = builder.build(smiles);
+                auto mono_type = builder.getMonomerType(smiles);
+                ptr->setMonoTypeAll(mono_type);
+                sequences[i].emplace_back(std::move(ptr));
             }
         }
 

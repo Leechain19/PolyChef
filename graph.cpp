@@ -267,33 +267,34 @@ void Graph::_make_end(const std::string& end_symbol, int poly_index, bool poly_d
     // shorten C-C bond as C-H
     auto atom0_ptr = getAtom(poly_ptr->getNeigh());
     int mono_index = getMonomer(poly_ptr->getNeigh());
+    int mono_type = getMonomerType(poly_ptr->getNeigh());
 
     Vector direct = atom::positionMinusPosition(poly_ptr->getPosition(), atom0_ptr->getPosition()).normalized() * BondTable::get_length(end_symbol, atom0_ptr->getSymbol(), "-");
     Position new_pos = atom0_ptr->getPosition() + direct;
     auto atom1_ptr = std::make_shared<Atom>(end_symbol, new_pos.x(), new_pos.y(), new_pos.z());
-    this->addAtom(atom1_ptr, mono_index);
+    this->addAtom(atom1_ptr, mono_index, mono_type, false);
     int cur = n - 1;
     addEdge(cur, poly_ptr->getNeigh(), end_symbol);
     addEdge(poly_ptr->getNeigh(), cur, end_symbol);
 }
 
 Graph::Graph() : n(0), vertices(), edges(), monos(), polys(), is_period(false), ring_edges(), is_on_main_chain(), is_ar(), mono2ver() {}
-Graph::Graph(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> monos, std::vector<int> is_ar) : n(n), vertices(std::move(atoms)), edges(n), monos(std::move(monos)), polys(),
-is_period(false), ring_edges(), is_on_main_chain(), is_ar(std::move(is_ar)), mono2ver() {
+Graph::Graph(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> monos, std::vector<int> is_ar, int mono_type) : n(n), vertices(std::move(atoms)), edges(n), monos(std::move(monos)), polys(),
+is_period(false), ring_edges(), is_on_main_chain(), is_ar(std::move(is_ar)), mono_types(n, mono_type), mono2ver() {
     for (int atom_idx = 0; atom_idx < n; atom_idx ++) {
         _addMono2verTable(0, atom_idx);
     }
 }
 
 Graph::Graph(const Graph& other) : n(other.n), edges(other.edges), monos(other.monos), polys(other.polys), is_period(other.is_period),
-ring_edges(other.ring_edges), is_on_main_chain(other.is_on_main_chain), is_ar(other.is_ar), mono2ver(other.mono2ver) {
+ring_edges(other.ring_edges), is_on_main_chain(other.is_on_main_chain), is_ar(other.is_ar), mono_types(other.mono_types), mono2ver(other.mono2ver) {
     for (const auto& ptr : other.vertices) {
         vertices.emplace_back(std::make_shared<Atom>(*ptr));
     }
 }
 
 Graph::Graph(Graph&& other) noexcept : n(other.n), vertices(std::move(other.vertices)), edges(std::move(other.edges)), monos(std::move(other.monos)), polys(std::move(other.polys)),
-is_period(other.is_period), ring_edges(std::move(other.ring_edges)), is_on_main_chain(std::move(other.is_on_main_chain)), is_ar(std::move(other.is_ar)),
+is_period(other.is_period), ring_edges(std::move(other.ring_edges)), is_on_main_chain(std::move(other.is_on_main_chain)), is_ar(std::move(other.is_ar)), mono_types(std::move(other.mono_types)),
 mono2ver(std::move(other.mono2ver)) {
     other.n = 0;
     other.is_period = false;
@@ -308,11 +309,11 @@ Graph& Graph::operator=(const Graph& other) {
     ring_edges = other.ring_edges;
     is_on_main_chain = other.is_on_main_chain;
     is_ar = other.is_ar;
+    mono_types = other.mono_types;
     mono2ver = other.mono2ver;
     for (const auto& ptr : other.vertices) {
         vertices.emplace_back(std::make_shared<Atom>(*ptr));
     }
-
     return *this;
 }
 
@@ -326,6 +327,7 @@ Graph& Graph::operator=(Graph&& other) noexcept {
     ring_edges = std::move(other.ring_edges);
     is_on_main_chain = std::move(other.is_on_main_chain);
     is_ar = std::move(other.is_ar);
+    mono_types = std::move(other.mono_types);
     mono2ver = std::move(other.mono2ver);
     other.n = 0;
     other.is_period = false;
@@ -333,23 +335,33 @@ Graph& Graph::operator=(Graph&& other) noexcept {
     return *this;
 }
 
-void Graph::addAtom(std::shared_ptr<Atom> atom_ptr, int mono, bool ar) {
+void Graph::addAtom(std::shared_ptr<Atom> atom_ptr, int mono, int mono_type, bool ar) {
     this->n += 1;
     this->vertices.push_back(std::move(atom_ptr));
     this->monos.push_back(mono);
     this->edges.emplace_back();
     this->is_ar.push_back(ar);
+    this->mono_types.push_back(mono_type);
     this->_addMono2verTable(mono, n - 1);
 }
 
-void Graph::addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono, bool ar) {
+void Graph::addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono, int mono_type, bool ar) {
     if (index >= n) {
         throw exception::InvalidParameterException("(Graph.addAtom) The index exceeds the array bound");
     }
     this->vertices[index] = std::move(atom_ptr);
     this->monos[index] = mono;
     this->is_ar[index] = ar;
+    this->mono_types[index] = mono_type;
     this->_modifyMonomer(mono, index);
+}
+
+void Graph::setMonoType(int index, int mono_type) {
+    mono_types.at(index) = mono_type;
+}
+
+void Graph::setMonoTypeAll(int mono_type) {
+    std::fill(mono_types.begin(), mono_types.end(), mono_type);
 }
 
 void Graph::addEdge(int from, int to, const std::string& type, bool onring) {
@@ -408,10 +420,11 @@ const std::vector<std::shared_ptr<Atom>>& Graph::getAtomVec() const {
 }
 
 int Graph::getMonomer(int index) const {
-    if (index < 0 || index >= n) {
-        throw exception::InvalidParameterException("(Graph.getMonomer) Index exceeds bound");
-    }
-    return monos[index];
+    return monos.at(index);
+}
+
+int Graph::getMonomerType(int index) const {
+    return mono_types.at(index);
 }
 
 const std::vector<int>& Graph::getMonomerVec() const {
@@ -430,14 +443,15 @@ const std::vector<std::vector<int>>& Graph::getMono2verTable() const {
 }
 
 bool Graph::isAr(int index) const {
-    if (index < 0 || index >= n) {
-        throw exception::InvalidParameterException("(Graph.isAr) Index exceeds bound");
-    }
-    return is_ar[index];
+    return is_ar.at(index);
 }
 
 const std::vector<int>& Graph::getArVec() const {
     return is_ar;
+}
+
+const std::vector<int>& Graph::getMonoTypeVec() const {
+    return mono_types;
 }
 
 float Graph::atomDistance(int idx1, int idx2) {
@@ -447,10 +461,7 @@ float Graph::atomDistance(int idx1, int idx2) {
 }
 
 const std::vector<std::shared_ptr<Edge>>& Graph::getEdge(int index) const {
-    if (index < 0 || index >= n) {
-        throw exception::InvalidParameterException("(Graph.getEdge) Index exceeds bound");
-    }
-    return edges[index];
+    return edges.at(index);
 }
 
 int Graph::getPolysSize() const {
@@ -667,6 +678,7 @@ void Graph::connect(const std::shared_ptr<Graph>& g, int poly_index, bool poly_d
     }
 
     is_ar.insert(is_ar.end(), g->getArVec().begin(), g->getArVec().end());
+    mono_types.insert(mono_types.end(), g->getMonoTypeVec().begin(), g->getMonoTypeVec().end());
     is_on_main_chain.insert(is_on_main_chain.end(), g->getOnMainChain().begin(), g->getOnMainChain().end());
 
     for (const auto& vec : g->getEdgesVec()) {

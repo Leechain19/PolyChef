@@ -5,8 +5,8 @@
 #include "crosslinker.h"
 
 
-CrossLinker::CrossLinker(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> is_ar) :
-n(n), vertices(std::move(atoms)), is_ar(std::move(is_ar)) {}
+CrossLinker::CrossLinker(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> is_ar, std::vector<int> mono_types) :
+n(n), vertices(std::move(atoms)), is_ar(std::move(is_ar)), mono_types(std::move(mono_types)) {}
 
 CrossLinker::CrossLinker(const CrossLinker &other) {
     n = other.n;
@@ -20,6 +20,7 @@ CrossLinker::CrossLinker(const CrossLinker &other) {
     }
     edges = other.edges;
     is_ar = other.is_ar;
+    mono_types = other.mono_types;
 }
 
 CrossLinker::CrossLinker(CrossLinker &&other) noexcept {
@@ -28,6 +29,7 @@ CrossLinker::CrossLinker(CrossLinker &&other) noexcept {
     polys = std::move(other.polys);
     edges = std::move(other.edges);
     is_ar = std::move(other.is_ar);
+    mono_types = std::move(other.mono_types);
     other.n = 0;
 }
 
@@ -43,6 +45,7 @@ CrossLinker& CrossLinker::operator=(const CrossLinker &other) {
     }
     edges = other.edges;
     is_ar = other.is_ar;
+    mono_types = other.mono_types;
     return *this;
 }
 
@@ -52,6 +55,7 @@ CrossLinker& CrossLinker::operator=(CrossLinker &&other) noexcept {
     polys = std::move(other.polys);
     edges = std::move(other.edges);
     is_ar = std::move(other.is_ar);
+    mono_types = std::move(other.mono_types);
     other.n = 0;
     return *this;
 }
@@ -107,19 +111,21 @@ const std::vector<std::shared_ptr<Poly>>& CrossLinker::getPolyVec() const {
     return polys;
 }
 
-void CrossLinker::addAtom(std::shared_ptr<Atom> atom_ptr, bool ar) {
+void CrossLinker::addAtom(std::shared_ptr<Atom> atom_ptr, int mono_type, bool ar) {
     this->n += 1;
     this->vertices.push_back(std::move(atom_ptr));
     this->edges.emplace_back();
     this->is_ar.push_back(ar);
+    this->mono_types.push_back(mono_type);
 }
 
-void CrossLinker::addAtom(int index, std::shared_ptr<Atom> atom_ptr, bool ar) {
+void CrossLinker::addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono_type, bool ar) {
     if (index >= n) {
         throw exception::InvalidParameterException("(CrossLinker.addAtom) The index exceeds the array bound");
     }
     this->vertices[index] = std::move(atom_ptr);
     this->is_ar[index] = ar;
+    this->mono_types.push_back(mono_type);
 }
 
 void CrossLinker::addEdge(int from, int to, const std::string &type) {
@@ -144,6 +150,22 @@ bool CrossLinker::isAr(int index) const {
 
 const std::vector<int>& CrossLinker::getArVec() const {
     return is_ar;
+}
+
+void CrossLinker::setMonoType(int index, int mono_type) {
+    mono_types.at(index) = mono_type;
+}
+
+void CrossLinker::setMonoTypeAll(int mono_type) {
+    std::fill(mono_types.begin(), mono_types.end(), mono_type);
+}
+
+int CrossLinker::getMonomerType(int index) const {
+    return mono_types.at(index);
+}
+
+const std::vector<int>& CrossLinker::getMonoTypeVec() const {
+    return mono_types;
 }
 
 const std::vector<std::shared_ptr<Edge>>& CrossLinker::getEdge(int index) const {

@@ -16,6 +16,17 @@ struct Pointer {
     explicit Pointer(int left = 0, int right = 0);
 };
 
+template<typename T>
+T qmi(T x, int n) {
+    auto res = T{1};
+    assert(n >= 0);
+    for (; n; n >>= 1) {
+        if (n & 1) res *= x;
+        x *= x;
+    }
+    return res;
+}
+
 class Optimizer {
 private:
     float LJ_weight;

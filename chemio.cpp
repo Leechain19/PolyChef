@@ -4,6 +4,31 @@
 
 #include "chemio.h"
 
+Index2CodePrinter::Index2CodePrinter(std::string header) : header_(std::move(header)) {}
+
+std::string Index2CodePrinter::index2code(int idx) {
+    assert(idx > 0);
+    std::string ans;
+    while (idx > 0) {
+        auto u = idx % 26;
+        if (u == 0) u = 26;
+        ans.push_back(static_cast<char>('A' + u - 1));
+        idx = (idx - u) / 26;
+    }
+    std::reverse(ans.begin(), ans.end());
+    return ans;
+}
+
+std::string Index2CodePrinter::get(int memo_type) {
+    while (memo_type >= (int)this->string_memo.size()) {
+        this->string_memo.emplace_back();
+    }
+    if (this->string_memo[memo_type].empty()) {
+        this->string_memo[memo_type] = header_ + index2code(memo_type);
+    }
+    return this->string_memo[memo_type];
+}
+
 std::variant<long, double, std::string> chemio::convertPyObject(PyObject* obj) {
     if (PyLong_Check(obj)) {
         return PyLong_AS_LONG(obj);
@@ -63,7 +88,7 @@ std::shared_ptr<Graph> chemio::PyInfoConvertToGraph(
         float y = static_cast<float>(std::get<double>(vec[2]));
         float z = static_cast<float>(std::get<double>(vec[3]));
         bool ar = static_cast<bool>(std::get<long>(vec[4]));
-        g->addAtom(std::make_shared<Atom>(name, x, y, z), 0, ar);
+        g->addAtom(std::make_shared<Atom>(name, x, y, z), 0, 0, ar);
     }
 
     // edges
@@ -112,7 +137,7 @@ std::shared_ptr<CrossLinker> chemio::PyInfoConvertToCrossLinker(
         float y = static_cast<float>(std::get<double>(vec[2]));
         float z = static_cast<float>(std::get<double>(vec[3]));
         bool ar = static_cast<bool>(std::get<long>(vec[4]));
-        g->addAtom(std::make_shared<Atom>(name, x, y, z), ar);
+        g->addAtom(std::make_shared<Atom>(name, x, y, z), 0, ar);
     }
 
     // edges
@@ -520,6 +545,8 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
         std::cerr << "Error to open" << file_name << std::endl;
         return;
     }
+    Index2CodePrinter mono_printer(std::string("M_"));
+
     outFile << "###" << std::endl;
     std::time_t now = std::time(nullptr);
     char* time_str = std::ctime(&now);
@@ -541,7 +568,7 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
         outFile << std::setw(7) << std::right << (i + 1) << ' ' << std::setw(8) << std::left << ptr->getSymbol() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
         << ptr->getx() << std::setw(10) << std::fixed << std::setprecision(4) << std::right << ptr->gety() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
         << ptr->getz() << ' ' << std::setw(5) << std::left << chemio::getAtomType(ptr->getSymbol(), (int)g->getEdge(i).size(), g->isAr(i)) << std::setw(6) << std::right
-        << g->getMonomer(i) << std::setw(9) << std::right << 0 << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
+        << g->getMonomer(i) << std::setw(9) << std::right << mono_printer.get(g->getMonomerType(i)) << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
     }
 
     outFile << "@<TRIPOS>BOND" << std::endl;
@@ -599,6 +626,9 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
         return;
     }
 
+    Index2CodePrinter mono_printer(std::string("M_"));
+    Index2CodePrinter cross_printer(std::string("C_"));
+
     outFile << "###\n";
     std::time_t now = std::time(nullptr);
     char* time_str = std::ctime(&now);
@@ -634,7 +664,7 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
             outFile << std::setw(7) << std::right << (atom_index + 1) << ' ' << std::setw(8) << std::left << atom_ptr->getSymbol() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
             << atom_ptr->getx() << std::setw(10) << std::fixed << std::setprecision(4) << std::right << atom_ptr->gety() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
             << atom_ptr->getz() << ' ' << std::setw(5) << std::left << chemio::getAtomType(atom_ptr->getSymbol(), (int)cl->getEdge(i).size(), cl->isAr(i)) << std::setw(6) << std::right
-            << mono_index << std::setw(9) << std::right << 0 << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
+            << mono_index << std::setw(9) << std::right << cross_printer.get(cl->getMonomerType(i)) << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
 
             crosslink_index_table[gid].emplace_back(atom_index);
             atom_index ++;
@@ -652,7 +682,7 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
             outFile << std::setw(7) << std::right << (atom_index + 1) << ' ' << std::setw(8) << std::left << atom_ptr->getSymbol() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
             << atom_ptr->getx() << std::setw(10) << std::fixed << std::setprecision(4) << std::right << atom_ptr->gety() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
             << atom_ptr->getz() << ' ' << std::setw(5) << std::left << chemio::getAtomType(atom_ptr->getSymbol(), (int)chain->getEdge(i).size(), chain->isAr(i)) << std::setw(6) << std::right
-            << (chain->getMonomer(i) + mono_index) << std::setw(9) << std::right << 0 << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
+            << (chain->getMonomer(i) + mono_index) << std::setw(9) << std::right << mono_printer.get(chain->getMonomerType(i)) << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
 
             next_mono = std::max(next_mono, chain->getMonomer(i) + mono_index);
 

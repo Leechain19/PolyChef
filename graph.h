@@ -88,6 +88,7 @@ private:
     std::unordered_set<std::pair<int, int>, hashing::pair_hash<int>> ring_edges;
     std::vector<int> is_on_main_chain;
     std::vector<int> is_ar;
+    std::vector<int> mono_types;
     std::vector<std::vector<int>> mono2ver;
 
     void _addMono2verTable(int mono_idx, int atom_idx);
@@ -108,7 +109,7 @@ private:
 
 public:
     Graph();
-    Graph(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> monos, std::vector<int> is_ar);
+    Graph(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> monos, std::vector<int> is_ar, int mono_type = 0);
     virtual ~Graph() = default;
 
     Graph(const Graph& other);
@@ -117,9 +118,13 @@ public:
     Graph& operator=(const Graph& o);
     Graph& operator=(Graph&& other) noexcept ;
 
-    void addAtom(std::shared_ptr<Atom> atom_ptr, int mono, bool ar = false);
+    void addAtom(std::shared_ptr<Atom> atom_ptr, int mono, int mono_type = 0, bool ar = false);
 
-    void addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono, bool ar = false);
+    void addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono, int mono_type = 0, bool ar = false);
+
+    void setMonoType(int index, int mono_type);
+
+    void setMonoTypeAll(int mono_type);
 
     void addEdge(int from, int to, const std::string& type, bool onring = false);
 
@@ -143,6 +148,8 @@ public:
 
     int getMonomer(int index) const;
 
+    int getMonomerType(int index) const;
+
     const std::vector<int>& getMonomerVec() const;
 
     const std::vector<int>& getMono2verIndex(int index) const;
@@ -152,6 +159,8 @@ public:
     bool isAr(int index) const;
 
     const std::vector<int>& getArVec() const;
+
+    const std::vector<int>& getMonoTypeVec() const ;
 
     float atomDistance(int idx1, int idx2);
 

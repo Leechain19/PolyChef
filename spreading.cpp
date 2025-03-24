@@ -4,6 +4,7 @@
 
 #include "spreading.h"
 #include <list>
+#include <cmath>
 
 MolGenerator::MolGenerator(std::vector<std::shared_ptr<Graph>> sequence, bool is_random, unsigned int seed) : sequence(std::move(sequence)), is_random(is_random) {
     this->len = (int)this->sequence.size();
@@ -202,4 +203,10 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
         std::cout << "Warning: Bad signal!" << std::endl;
 
     optimize_process(tree_index, 3);
+    assert(bone_line.size() == 2);
+    auto fa_atom_id = bone_line.front();
+    bone_line.pop_front();
+    auto cur_atom_id = bone_line.front();
+    auto R = rodrigues(g->getAtomPosition(cur_atom_id) - g->getAtomPosition(fa_atom_id), M_PI);
+    g->bfsRotate(cur_atom_id, fa_atom_id, R);
 }

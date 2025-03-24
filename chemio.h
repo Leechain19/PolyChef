@@ -20,6 +20,16 @@
 #include <functional>
 #include <type_traits>
 
+class Index2CodePrinter {
+public:
+    explicit Index2CodePrinter(std::string header);
+    static std::string index2code(int idx);
+    std::string get(int mono_type);
+private:
+    std::vector<std::string> string_memo{};
+    std::string header_;
+};
+
 namespace chemio {
     std::variant<long, double, std::string> convertPyObject(PyObject* obj);
     std::vector<std::variant<long, double, std::string>> extract_tuple(PyObject* tuple);
@@ -84,14 +94,19 @@ public:
 
     std::shared_ptr<T> build(const std::string& psmiles) {
         auto it = memo_.find(psmiles);
-        if (it != memo_.end()) return it->second;
+        if (it != memo_.end()) return (it->second).first;
         auto ret = TypeTraits<T>::buildFromPSmiles(psmiles);
-        memo_[psmiles] = ret;
+        memo_[psmiles] = std::make_pair(ret, mono_type ++);
         return ret;
     }
 
+    int getMonomerType(const std::string& psmiles) {
+        return memo_[psmiles].second;
+    }
+
 private:
-    std::unordered_map<std::string, std::shared_ptr<T>> memo_{};
+    std::unordered_map<std::string, std::pair<std::shared_ptr<T>, int>> memo_{};
+    int mono_type = 1;
 };
 
 
@@ -105,14 +120,19 @@ public:
 
     std::shared_ptr<T> build(const std::string& path) {
         auto it = memo_.find(path);
-        if (it != memo_.end()) return it->second;
+        if (it != memo_.end()) return (it->second).first;
         auto ret = TypeTraits<T>::buildFromMol2(path);
-        memo_[path] = ret;
+        memo_[path] = std::make_pair(ret, mono_type ++);
         return ret;
     }
 
+    int getMonomerType(const std::string& psmiles) {
+        return memo_[psmiles].second;
+    }
+
 private:
-    std::unordered_map<std::string, std::shared_ptr<T>> memo_{};
+    std::unordered_map<std::string, std::pair<std::shared_ptr<T>, int>> memo_{};
+    int mono_type = 1;
 };
 
 #endif //ATOM_SEARCH_CPP_CHEMIO_H

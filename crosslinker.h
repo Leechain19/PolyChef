@@ -16,7 +16,7 @@
 class CrossLinker {
 public:
     CrossLinker() = default;
-    CrossLinker(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> is_ar);
+    CrossLinker(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> is_ar, std::vector<int> mono_types);
     ~CrossLinker() = default;
 
     CrossLinker(const CrossLinker& other);
@@ -43,9 +43,17 @@ public:
 
     [[nodiscard]] const std::vector<std::shared_ptr<Poly>>& getPolyVec() const;
 
-    void addAtom(std::shared_ptr<Atom> atom_ptr, bool ar = false);
+    void addAtom(std::shared_ptr<Atom> atom_ptr, int mono_type = 0, bool ar = false);
 
-    void addAtom(int index, std::shared_ptr<Atom> atom_ptr, bool ar = false);
+    void addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono_type = 0, bool ar = false);
+
+    void setMonoType(int index, int mono_type);
+
+    void setMonoTypeAll(int mono_type);
+
+    int getMonomerType(int index) const ;
+
+    const std::vector<int>& getMonoTypeVec() const;
 
     void addEdge(int from, int to, const std::string& type);
 
@@ -65,6 +73,8 @@ public:
 
     bool checkPolyUsedFlag(int index);
 
+
+
     friend std::ostream& operator<<(std::ostream& os, const CrossLinker& cl);
 
 private:
@@ -74,6 +84,7 @@ private:
     std::vector<std::shared_ptr<Poly>> polys;
     std::vector<int> poly_seen;
     std::vector<int> is_ar;
+    std::vector<int> mono_types;
 };
 
 class CrosslinkingSystem {
