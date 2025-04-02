@@ -5,8 +5,8 @@
 #include "crosslinker.h"
 
 
-CrossLinker::CrossLinker(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> is_ar, std::vector<int> mono_types) :
-n(n), vertices(std::move(atoms)), is_ar(std::move(is_ar)), mono_types(std::move(mono_types)) {}
+CrossLinker::CrossLinker(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> is_ar, int mono_type) :
+n(n), vertices(std::move(atoms)), is_ar(std::move(is_ar)), mono_type(mono_type) {}
 
 CrossLinker::CrossLinker(const CrossLinker &other) {
     n = other.n;
@@ -20,7 +20,7 @@ CrossLinker::CrossLinker(const CrossLinker &other) {
     }
     edges = other.edges;
     is_ar = other.is_ar;
-    mono_types = other.mono_types;
+    mono_type = other.mono_type;
 }
 
 CrossLinker::CrossLinker(CrossLinker &&other) noexcept {
@@ -29,8 +29,9 @@ CrossLinker::CrossLinker(CrossLinker &&other) noexcept {
     polys = std::move(other.polys);
     edges = std::move(other.edges);
     is_ar = std::move(other.is_ar);
-    mono_types = std::move(other.mono_types);
+    mono_type = other.mono_type;
     other.n = 0;
+    other.mono_type = 0;
 }
 
 CrossLinker& CrossLinker::operator=(const CrossLinker &other) {
@@ -45,7 +46,7 @@ CrossLinker& CrossLinker::operator=(const CrossLinker &other) {
     }
     edges = other.edges;
     is_ar = other.is_ar;
-    mono_types = other.mono_types;
+    mono_type = other.mono_type;
     return *this;
 }
 
@@ -55,8 +56,9 @@ CrossLinker& CrossLinker::operator=(CrossLinker &&other) noexcept {
     polys = std::move(other.polys);
     edges = std::move(other.edges);
     is_ar = std::move(other.is_ar);
-    mono_types = std::move(other.mono_types);
+    mono_type = other.mono_type;
     other.n = 0;
+    other.mono_type = 0;
     return *this;
 }
 
@@ -111,21 +113,19 @@ const std::vector<std::shared_ptr<Poly>>& CrossLinker::getPolyVec() const {
     return polys;
 }
 
-void CrossLinker::addAtom(std::shared_ptr<Atom> atom_ptr, int mono_type, bool ar) {
+void CrossLinker::addAtom(std::shared_ptr<Atom> atom_ptr, bool ar) {
     this->n += 1;
     this->vertices.push_back(std::move(atom_ptr));
     this->edges.emplace_back();
     this->is_ar.push_back(ar);
-    this->mono_types.push_back(mono_type);
 }
 
-void CrossLinker::addAtom(int index, std::shared_ptr<Atom> atom_ptr, int mono_type, bool ar) {
+void CrossLinker::addAtom(int index, std::shared_ptr<Atom> atom_ptr, bool ar) {
     if (index >= n) {
         throw exception::InvalidParameterException("(CrossLinker.addAtom) The index exceeds the array bound");
     }
     this->vertices[index] = std::move(atom_ptr);
     this->is_ar[index] = ar;
-    this->mono_types.push_back(mono_type);
 }
 
 void CrossLinker::addEdge(int from, int to, const std::string &type) {
@@ -152,20 +152,12 @@ const std::vector<int>& CrossLinker::getArVec() const {
     return is_ar;
 }
 
-void CrossLinker::setMonoType(int index, int mono_type) {
-    mono_types.at(index) = mono_type;
+void CrossLinker::setMonoType(int new_mono_type) {
+    this->mono_type = new_mono_type;
 }
 
-void CrossLinker::setMonoTypeAll(int mono_type) {
-    std::fill(mono_types.begin(), mono_types.end(), mono_type);
-}
-
-int CrossLinker::getMonomerType(int index) const {
-    return mono_types.at(index);
-}
-
-const std::vector<int>& CrossLinker::getMonoTypeVec() const {
-    return mono_types;
+int CrossLinker::getMonomerType() const {
+    return mono_type;
 }
 
 const std::vector<std::shared_ptr<Edge>>& CrossLinker::getEdge(int index) const {
@@ -233,7 +225,10 @@ CrosslinkingSystem::CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>>
     for (const auto& cl : crosslinkers_) {
         tree_ptr_->add_mol(cl, true);
     }
-    chain_graphs_.resize((int)crosslinker_network_.size(), std::make_shared<Graph>());
+    chain_graphs_.resize((int)crosslinker_network_.size(), nullptr);
+    for (auto& p : chain_graphs_) {
+        p = std::make_shared<Graph>();
+    }
 }
 
 int CrosslinkingSystem::getAtomSize() const {
@@ -302,7 +297,7 @@ void CrosslinkingSystem::spreadingChain(int chain_index, const std::vector<std::
     auto [cid1, cpid1, cid2, cpid2] = crosslinker_network_.at(chain_index);
     assert(!crosslinkers_[cid1]->checkPolyUsedFlag(cpid1) && !crosslinkers_[cid2]->checkPolyUsedFlag(cpid2));
 
-    auto& chain_ptr = chain_graphs_.at(chain_index);
+    auto chain_ptr = chain_graphs_.at(chain_index);
     curveSpreading(point_lists_.at(chain_index), chain_ptr, tree_ptr_, sequence, degree_polymerization, 5.0f, 5, random_polymerization,
                    optimize_size, false);
 
@@ -331,22 +326,13 @@ void CrosslinkingSystem::spreadingChain(int chain_index, const std::vector<std::
     auto root_position = chain_ptr->getAtomPosition(root_index);
     auto cur_position = chain_ptr->getAtomPosition(chain_ptr->polyBack()->getNeigh());
 
-//    std::cout << "root_position:" << root_position << std::endl;
-//    std::cout << "target_positionn:" << target_position << std::endl;
-//    std::cout << "cur_position:" << cur_position << std::endl;
-
     auto vec_cur = cur_position - root_position;
     auto vec_tar = target_position - root_position;
-
-//    std::cout << "vec_cur:" << vec_cur << std::endl;
-//    std::cout << "vec_tar:" << vec_tar << std::endl;
 
     auto rod = rotateMatrix(vec_cur, vec_tar);
     auto scale_ratio = vec_tar.norm() / vec_cur.norm();
 
-//    std::cout << "rod:" << rod << std::endl;
     std::cout << "scale_ratio:" << scale_ratio << std::endl;
-//    std::cout << "fa id: " << fa << std::endl;
 
     tree_ptr_->erase_mol(chain_ptr);
     chain_ptr->bfsRotateScale(root_index, fa, rod, scale_ratio);
@@ -364,7 +350,6 @@ void CrosslinkingSystem::calcChainGraphs(const std::vector<std::vector<std::shar
 }
 
 void CrosslinkingSystem::makeEnd(const std::string &end_system) {
-
     for (const auto& cl : crosslinkers_) {
         for (int j = 0; j < (int)cl->getPolysSize(); j ++) {
             if (!cl->checkPolyUsedFlag(j)) {

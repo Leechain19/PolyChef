@@ -137,7 +137,7 @@ std::shared_ptr<CrossLinker> chemio::PyInfoConvertToCrossLinker(
         float y = static_cast<float>(std::get<double>(vec[2]));
         float z = static_cast<float>(std::get<double>(vec[3]));
         bool ar = static_cast<bool>(std::get<long>(vec[4]));
-        g->addAtom(std::make_shared<Atom>(name, x, y, z), 0, ar);
+        g->addAtom(std::make_shared<Atom>(name, x, y, z), ar);
     }
 
     // edges
@@ -656,15 +656,18 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
 
     int mono_index = 0, atom_index = 0, edge_index = 0;
 
+    int cl_sum_atom = 0;
+
     for (int gid = 0; gid < cls->getCrosslinkerNumber(); gid ++) {
         const auto& cl = cls->getCrosslinkGraph(gid);
+        cl_sum_atom += cl->size();
         for (int i = 0; i < cl->size(); i ++) {
             const auto atom_ptr = cl->getAtom(i);
 
             outFile << std::setw(7) << std::right << (atom_index + 1) << ' ' << std::setw(8) << std::left << atom_ptr->getSymbol() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
             << atom_ptr->getx() << std::setw(10) << std::fixed << std::setprecision(4) << std::right << atom_ptr->gety() << std::setw(10) << std::fixed << std::setprecision(4) << std::right
             << atom_ptr->getz() << ' ' << std::setw(5) << std::left << chemio::getAtomType(atom_ptr->getSymbol(), (int)cl->getEdge(i).size(), cl->isAr(i)) << std::setw(6) << std::right
-            << mono_index << std::setw(9) << std::right << cross_printer.get(cl->getMonomerType(i)) << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
+            << mono_index << std::setw(9) << std::right << cross_printer.get(cl->getMonomerType()) << std::setw(10) << std::fixed <<  std::setprecision(4) << std::right << 0.0f << '\n';
 
             crosslink_index_table[gid].emplace_back(atom_index);
             atom_index ++;
@@ -674,7 +677,7 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
 
     // chain graphs
     for (int gid = 0; gid < cls->getCrosslinkerNetworkNumber(); gid ++) {
-        const auto& chain = cls->getChainGraph(gid);
+        auto chain = cls->getChainGraph(gid);
         int next_mono = mono_index;
         for (int i = 0; i < chain->size(); i ++) {
             const auto atom_ptr = chain->getAtom(i);

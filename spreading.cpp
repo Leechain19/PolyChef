@@ -204,9 +204,4 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
 
     optimize_process(tree_index, 3);
     assert(bone_line.size() == 2);
-    auto fa_atom_id = bone_line.front();
-    bone_line.pop_front();
-    auto cur_atom_id = bone_line.front();
-    auto R = rodrigues(g->getAtomPosition(cur_atom_id) - g->getAtomPosition(fa_atom_id), M_PI);
-    g->bfsRotate(cur_atom_id, fa_atom_id, R);
 }

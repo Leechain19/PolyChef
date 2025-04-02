@@ -104,6 +104,12 @@ public:
         return memo_[psmiles].second;
     }
 
+    void print() {
+        for (const auto& [ss, p] : memo_) {
+            std::cout << "ss: " << ss << " index: " << p.second << std::endl;
+        }
+    }
+
 private:
     std::unordered_map<std::string, std::pair<std::shared_ptr<T>, int>> memo_{};
     int mono_type = 1;
@@ -128,6 +134,12 @@ public:
 
     int getMonomerType(const std::string& psmiles) {
         return memo_[psmiles].second;
+    }
+
+    void print() {
+        for (const auto& [ss, p] : memo_) {
+            std::cout << "ss: " << ss << " index: " << p.second << std::endl;
+        }
     }
 
 private:

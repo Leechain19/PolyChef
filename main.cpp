@@ -291,16 +291,16 @@ void solve(const std::string& filename) {
 
         std::vector<std::shared_ptr<CrossLinker>> crosslinkers(crosslinker_number, nullptr);
         std::vector<std::vector<int>> seen(crosslinker_number);
-        Mol2Builder<CrossLinker> mol2_builder;
+        // 因为所有的交联点一定名称不同 设置Builder多此一举
+
         for (int i = 0; i < crosslinker_number; i ++) {
-            auto ptr = mol2_builder.build(crosslinker_mol2_list[i]);
-            int mono_type = mol2_builder.getMonomerType(crosslinker_mol2_list[i]);
-            ptr->setMonoTypeAll(mono_type);
-            crosslinkers[i] = std::move(ptr);
+            int crosslinker_type = i + 1;
+            crosslinkers[i] = chemio::buildCrossLinkerFromMol2(crosslinker_mol2_list[i]);
             seen[i].resize(crosslinkers[i]->getPolysSize(), false);
+            crosslinkers[i]->setMonoType(crosslinker_type);
         }
 
-        // 检查poly是否存在
+        // 检查poly是否存在.
         auto checkPolyAndGetPosition = [&crosslinkers](int who, int poly_id) -> Position {
             int poly_size = crosslinkers.at(who)->getPolysSize();
             if (poly_id < 0 || poly_id >= poly_size) {
@@ -375,6 +375,7 @@ void solve(const std::string& filename) {
                 cnt_poly += t;
             }
         }
+//        std::cout << "sum_poly: " << sum_poly << " cnt_poly: " << cnt_poly << std::endl;
         float degree_crosslinking = (sum_poly ? (float)cnt_poly / (float)sum_poly : 0.0f);
         std::cout << "Degree of crosslinking: " << std::fixed << std::setprecision(2) << degree_crosslinking * 100 << "%" << std::endl;
         return;
