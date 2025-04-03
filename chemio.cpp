@@ -265,7 +265,9 @@ std::shared_ptr<Graph> chemio::buildGraphFromMol2(const std::string& path) {
     }
 
     PyRun_SimpleString("import sys");
-    PyRun_SimpleString("sys.path.append('./../script')");
+    const char* pythonScriptPath = PYTHON_SCRIPT_PATH;
+    std::string simple_string = std::string("sys.path.append('") + std::string(pythonScriptPath) + std::string("')");
+    PyRun_SimpleString(simple_string.c_str());
 
     PyObject* module = PyImport_ImportModule("rdkit_helper");
 
@@ -352,7 +354,9 @@ std::shared_ptr<CrossLinker> chemio::buildCrossLinkerFromPSmiles(const std::stri
     }
 
     PyRun_SimpleString("import sys");
-    PyRun_SimpleString("sys.path.append('./../script')");
+    const char* pythonScriptPath = PYTHON_SCRIPT_PATH;
+    std::string simple_string = std::string("sys.path.append('") + std::string(pythonScriptPath) + std::string("')");
+    PyRun_SimpleString(simple_string.c_str());
 
     PyObject* module = PyImport_ImportModule("rdkit_helper");
 
@@ -428,7 +432,9 @@ std::shared_ptr<CrossLinker> chemio::buildCrossLinkerFromMol2(const std::string&
     }
 
     PyRun_SimpleString("import sys");
-    PyRun_SimpleString("sys.path.append('./../script')");
+    const char* pythonScriptPath = PYTHON_SCRIPT_PATH;
+    std::string simple_string = std::string("sys.path.append('") + std::string(pythonScriptPath) + std::string("')");
+    PyRun_SimpleString(simple_string.c_str());
 
     PyObject* module = PyImport_ImportModule("rdkit_helper");
 
