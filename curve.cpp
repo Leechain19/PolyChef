@@ -232,7 +232,7 @@ std::vector<Position> calCRS(const std::vector<Position>& path, float distance_t
     return all_points;
 }
 
-std::vector<Position> getScatterFromCSV(const std::string& path, bool header) {
+std::vector<Position> getScatterFromCSV(const std::string& path, bool header, float distance_upper_bound) {
     std::vector<Position> points;
     std::ifstream file(path);
     std::string line;
@@ -293,7 +293,12 @@ std::vector<Position> getScatterFromCSV(const std::string& path, bool header) {
 
         // 如果所有值都有效，则添加到 points 向量中
         if (valid) {
-            points.emplace_back(x, y, z);
+            Position p(x, y, z);
+            while (points.size() >= 2 && atom::positionDistance(p, points[points.size()-1]) < distance_upper_bound &&
+                atom::positionDistance(p, points[points.size()-2]) < distance_upper_bound) {
+                points.pop_back();
+            }
+            points.emplace_back(p);
         }
         line_id ++;
     }

@@ -333,10 +333,13 @@ void CrosslinkingSystem::spreadingChain(int chain_index, const std::vector<std::
     auto scale_ratio = vec_tar.norm() / vec_cur.norm();
 
     std::cout << "scale_ratio:" << scale_ratio << std::endl;
-
-    tree_ptr_->erase_mol(chain_ptr);
-    chain_ptr->bfsRotateScale(root_index, fa, rod, scale_ratio);
-    tree_ptr_->add_mol(chain_ptr);
+    if (std::abs(vec_cur.norm()) > 0.001) {
+        tree_ptr_->erase_mol(chain_ptr);
+        chain_ptr->bfsRotateScale(root_index, fa, rod, scale_ratio);
+        tree_ptr_->add_mol(chain_ptr);
+    } else {
+        std::cout << "[Warning] Unqualified scale ratio: " << scale_ratio << std::endl;
+    }
 
     crosslinkers_[cid1]->makePolyUsedFlag(cpid1);
     crosslinkers_[cid2]->makePolyUsedFlag(cpid2);

@@ -5,6 +5,8 @@
 #include "spreading.h"
 #include <list>
 #include <cmath>
+#include <iostream>
+#include <chrono>
 
 MolGenerator::MolGenerator(std::vector<std::shared_ptr<Graph>> sequence, bool is_random, unsigned int seed) : sequence(std::move(sequence)), is_random(is_random) {
     this->len = (int)this->sequence.size();
@@ -171,12 +173,11 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
 
     dfs(dfs, g->polyBack()->getNeigh());
 
+//    auto start = std::chrono::steady_clock::now();
+
     progresscpp::ProgressBar progress_bar(degree_of_polymerization-1, 70);
     for (int epoch = 1; epoch < degree_of_polymerization; epoch ++) {
-//        if (epoch % std::max(1, degree_of_polymerization / 20) == 0)
-//            std::cout << "Epoch: " << epoch << "/" << degree_of_polymerization << '\n';
         auto cur_mol = mol_genrator_ptr->getNext();
-
         g->attract(cur_mol);
         g->connect(cur_mol, -1, true);
 
@@ -193,6 +194,11 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
         if (stat < 0) {
             break;
         }
+//        if (epoch % 30000 == 0) {
+//            auto end = std::chrono::steady_clock::now();
+//            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+//            std::cout << "Mono: " << epoch << " Time Cost: " << duration.count() << " ms" << std::endl;
+//        }
     }
     progress_bar.done();
     if (stat > 0)
