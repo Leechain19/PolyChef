@@ -212,8 +212,8 @@ void CrossLinker::makeEnd(int poly_index, const std::string& end_symbol) {
     auto atom1_ptr = std::make_shared<Atom>(end_symbol, new_pos.x(), new_pos.y(), new_pos.z());
     this->addAtom(atom1_ptr);
     int cur = n - 1;
-    addEdge(cur, poly_ptr->getNeigh(), end_symbol);
-    addEdge(poly_ptr->getNeigh(), cur, end_symbol);
+    addEdge(cur, poly_ptr->getNeigh(), "1");
+    addEdge(poly_ptr->getNeigh(), cur, "1");
 }
 
 CrosslinkingSystem::CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslinkers, std::vector<std::array<int, 4>> crosslinker_network,

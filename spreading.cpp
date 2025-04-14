@@ -174,6 +174,7 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
     dfs(dfs, g->polyBack()->getNeigh());
 
 //    auto start = std::chrono::steady_clock::now();
+//    std::vector<long long> time_memo;
 
     progresscpp::ProgressBar progress_bar(degree_of_polymerization-1, 70);
     for (int epoch = 1; epoch < degree_of_polymerization; epoch ++) {
@@ -194,12 +195,20 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
         if (stat < 0) {
             break;
         }
-//        if (epoch % 30000 == 0) {
+//        if (epoch % 15000 == 0) {
 //            auto end = std::chrono::steady_clock::now();
 //            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+//            time_memo.emplace_back(duration.count());
 //            std::cout << "Mono: " << epoch << " Time Cost: " << duration.count() << " ms" << std::endl;
 //        }
     }
+//    std::cout << "[";
+//    for (int i = 0; i < time_memo.size(); i ++) {
+//        std::cout << time_memo[i] / 1000.0;
+//        if (i < (int)time_memo.size() - 1) std::cout << ", ";
+//    }
+//    std::cout << "]";
+
     progress_bar.done();
     if (stat > 0)
         std::cout << "Early stop!" << std::endl;

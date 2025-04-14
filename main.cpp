@@ -304,7 +304,7 @@ void solve(const std::string& filename) {
         auto checkPolyAndGetPosition = [&crosslinkers](int who, int poly_id) -> Position {
             int poly_size = crosslinkers.at(who)->getPolysSize();
             if (poly_id < 0 || poly_id >= poly_size) {
-                throw std::runtime_error("Error wrong poly: " + std::to_string(who) + "- TypeID: " + std::to_string(who) + " - PolyID: " + std::to_string(poly_id));
+                throw std::runtime_error("Error wrong poly:" + std::to_string(who) + " Crosslinker_poly_size:" + std::to_string(poly_size) + " PolyID: " + std::to_string(poly_id));
             }
             return crosslinkers[who]->getPolyPosition(poly_id);
         };

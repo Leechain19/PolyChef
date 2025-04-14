@@ -274,8 +274,8 @@ void Graph::_make_end(const std::string& end_symbol, int poly_index, bool poly_d
     auto atom1_ptr = std::make_shared<Atom>(end_symbol, new_pos.x(), new_pos.y(), new_pos.z());
     this->addAtom(atom1_ptr, mono_index, mono_type, false);
     int cur = n - 1;
-    addEdge(cur, poly_ptr->getNeigh(), end_symbol);
-    addEdge(poly_ptr->getNeigh(), cur, end_symbol);
+    addEdge(cur, poly_ptr->getNeigh(), "1");
+    addEdge(poly_ptr->getNeigh(), cur, "1");
 }
 
 Graph::Graph() : n(0), vertices(), edges(), monos(), polys(), is_period(false), ring_edges(), is_on_main_chain(), is_ar(), mono2ver() {}
