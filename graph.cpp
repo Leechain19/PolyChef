@@ -468,7 +468,7 @@ int Graph::getPolysSize() const {
     return polys.size();
 }
 
-int Graph::getEdgesSize() const {
+int Graph::getEdgesSum() const {
     int size = 0;
     for (const auto& vec : this->getEdgesVec()) {
         size += (int)vec.size();

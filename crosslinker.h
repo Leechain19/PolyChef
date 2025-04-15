@@ -29,7 +29,7 @@ public:
 
     [[nodiscard]] int getPolysSize() const;
 
-    [[nodiscard]] int getEdgesSize() const ;
+    [[nodiscard]] int getEdgesSum() const ;
 
     [[nodiscard]] std::shared_ptr<Atom> getAtom(int index) const ;
 

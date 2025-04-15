@@ -70,7 +70,7 @@ int CrossLinker::getPolysSize() const {
     return (int)polys.size();
 }
 
-int CrossLinker::getEdgesSize() const {
+int CrossLinker::getEdgesSum() const {
     int size = 0;
     for (const auto& vec : this->getEdgeVec()) {
         size += (int)vec.size();
@@ -245,10 +245,10 @@ int CrosslinkingSystem::getAtomSize() const {
 int CrosslinkingSystem::getEdgeSize() const {
     int sum = 0;
     for (const auto& cl : crosslinkers_) {
-        sum += cl->getEdgesSize();
+        sum += cl->getEdgesSum();
     }
     for (const auto& chain_ptr : chain_graphs_) {
-        sum += chain_ptr->getEdgesSize();
+        sum += chain_ptr->getEdgesSum();
     }
     sum += (getCrosslinkerNetworkNumber() << 1);
     return sum;

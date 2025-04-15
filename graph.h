@@ -168,7 +168,7 @@ public:
 
     int getPolysSize() const;
 
-    int getEdgesSize() const;
+    int getEdgesSum() const;
 
     const std::vector<std::vector<std::shared_ptr<Edge>>>& getEdgesVec() const;
 

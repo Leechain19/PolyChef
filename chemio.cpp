@@ -562,7 +562,7 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
 
     outFile << "@<TRIPOS>MOLECULE" << std::endl;
     outFile << file_info << std::endl;
-    outFile << g->size() << ' ' << g->getEdgesSize() << ' ' << 1 << ' ' << 0 << ' ' << 0 << std::endl;
+    outFile << g->size() << ' ' << g->getEdgesSum() << ' ' << 1 << ' ' << 0 << ' ' << 0 << std::endl;
 
     outFile << "SMALL" << std::endl;
     outFile << "USER_CHARGES" << std::endl;
@@ -705,7 +705,7 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
     outFile << "@<TRIPOS>BOND" << std::endl;
     for (int gid = 0; gid < cls->getCrosslinkerNumber(); gid ++) {
         const auto& cl = cls->getCrosslinkGraph(gid);
-        for (int i = 0; i < cl->getEdgesSize(); i ++) {
+        for (int i = 0; i < cl->size(); i ++) {
             const auto& vec = cl->getEdge(i);
             auto atom_id1 = crosslink_index_table[gid][i];
 
@@ -724,7 +724,7 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
 
     for (int gid = 0; gid < cls->getCrosslinkerNetworkNumber(); gid ++) {
         const auto& g = cls->getChainGraph(gid);
-        for (int i = 0; i < g->getEdgesSize(); i ++) {
+        for (int i = 0; i < g->size(); i ++) {
             const auto& vec = g->getEdge(i);
             auto atom_id1 = chain_index_table[gid][i];
 
