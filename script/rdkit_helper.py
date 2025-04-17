@@ -151,7 +151,7 @@ def read_mol2(path):
             poly_cache.append((start, (hashing[end], x, y, z)))
         else:
             tp = bond.GetBondType()
-            Type = '2' if tp == Chem.rdchem.BondType.DOUBLE else ('3' if tp == Chem.rdchem.BondType.TRIPLE else ('4' if tp == Chem.rdchem.BondType.AROMATIC else '1'))
+            Type = '2' if tp == Chem.rdchem.BondType.DOUBLE else ('3' if tp == Chem.rdchem.BondType.TRIPLE else ('ar' if tp == Chem.rdchem.BondType.AROMATIC else '1'))
             edge_cache.append((hashing[start], hashing[end], Type))
 
             if bond.IsInRing():
