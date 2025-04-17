@@ -38,8 +38,22 @@ bool optimizer::EarlyTerminationFunction(const de::DifferentialEvolution& diffev
     return false;
 }
 
-Optimizer::Optimizer(float LJ_weight, std::shared_ptr<Grid> tree, const std::vector<Position>& target_points, const Pointer& pointer, int cal_len) :
-LJ_weight(LJ_weight), tree(std::move(tree)), target_points(target_points), pointer(pointer), cal_len(cal_len) {}
+Optimizer::Optimizer(float LJ_weight, std::shared_ptr<Grid> tree, const std::vector<Position>& target_points, const Pointer& pointer,
+                     int cal_len, const std::string& pool_choice, float para_A, float para_B) : LJ_weight(LJ_weight), tree(std::move(tree)),
+                     target_points(target_points), pointer(pointer), cal_len(cal_len), para_A(para_A), para_B(para_B) {
+    if (pool_choice == "ave") {
+        pool_type = Pool_type::AVE;
+    }
+    else if (pool_choice == "min") {
+        pool_type = Pool_type::MIN;
+    }
+    else if (pool_choice == "max") {
+        pool_type = Pool_type::MAX;
+    }
+    else {
+        throw std::runtime_error("Unknown Pooling type:" + pool_choice);
+    }
+}
 
 std::pair<float, float> Optimizer::objective_fcn_pair(float angle) {
     auto R = rodrigues(K, angle);
@@ -59,16 +73,24 @@ std::pair<float, float> Optimizer::objective_fcn_pair(float angle) {
 
     float lj = 0.0f;
     float val = 0.0f;
-    auto sz_mul = 1.0f / (float)sz;
+    int point_window_length = pointer.right - pointer.left;
 
     for (const auto& position : cur_atoms) {
-        float sum = 0.0;
+        float sum = (pool_type == Pool_type::AVE ? 0.0f : (pool_type == Pool_type::MAX ? -1.0f : std::numeric_limits<float>::max()));
         for (int i = pointer.left; i < pointer.right; i ++) {
-            sum += atom::positionDistance(position, target_points[i]);
+            auto dis = atom::positionDistance(position, target_points[i]);
+            if (pool_type == Pool_type::AVE) {
+                getAve(sum, dis / (float)point_window_length);
+            }
+            else if (pool_type == Pool_type::MIN) {
+                getMin(sum, dis);
+            }
+            else {
+                getMax(sum, dis);
+            }
         }
-        sum /= static_cast<float>(pointer.right - pointer.left);
-        val += sum;
 
+        val += sum;
         auto [node, min_dist] = tree->search_nn(position);
         if (!node) {
             min_dist = 1e6f;
@@ -76,7 +98,7 @@ std::pair<float, float> Optimizer::objective_fcn_pair(float angle) {
         const float sigma = 3.5f;
         lj += LJ_weight * static_cast<float>(qmi(sigma / min_dist, 6));
     }
-    return {val * sz_mul, lj * sz_mul};
+    return {val / (float)sz * para_A, lj / (float)sz * para_B};
 }
 
 float Optimizer::objective_fcn(float angle) {

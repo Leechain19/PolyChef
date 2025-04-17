@@ -293,13 +293,13 @@ const std::vector<std::array<int, 4>>& CrosslinkingSystem::getCrosslinkerNetwork
 }
 
 void CrosslinkingSystem::spreadingChain(int chain_index, const std::vector<std::shared_ptr<Graph>> &sequence,
-                                        int degree_polymerization, bool random_polymerization, int optimize_size) {
+                                        int degree_polymerization, const std::string& pool_choice, float para_A, float para_B, bool random_polymerization, int optimize_size) {
     auto [cid1, cpid1, cid2, cpid2] = crosslinker_network_.at(chain_index);
     assert(!crosslinkers_[cid1]->checkPolyUsedFlag(cpid1) && !crosslinkers_[cid2]->checkPolyUsedFlag(cpid2));
 
     auto chain_ptr = chain_graphs_.at(chain_index);
-    curveSpreading(point_lists_.at(chain_index), chain_ptr, tree_ptr_, sequence, degree_polymerization, 5.0f, 5, random_polymerization,
-                   optimize_size, false);
+    curveSpreading(point_lists_.at(chain_index), chain_ptr, tree_ptr_, sequence, degree_polymerization, pool_choice, para_A, para_B, 5.0f, 5, random_polymerization,
+                   optimize_size, false, 10000.0);
 
     auto target_position = crosslinkers_.at(cid2)->getPolyPosition(cpid2);
 
@@ -345,10 +345,10 @@ void CrosslinkingSystem::spreadingChain(int chain_index, const std::vector<std::
     crosslinkers_[cid2]->makePolyUsedFlag(cpid2);
 }
 
-void CrosslinkingSystem::calcChainGraphs(const std::vector<std::vector<std::shared_ptr<Graph>>>& sequences,
-                                    int degree_polymerization, bool random_polymerization, int optimize_size) {
+void CrosslinkingSystem::calcChainGraphs(const std::vector<std::vector<std::shared_ptr<Graph>>>& sequences, int degree_polymerization,
+                                         const std::string& pool_choice,float para_A, float para_B, bool random_polymerization, int optimize_size) {
     for (int i = 0; i < crosslinker_network_.size(); i ++) {
-        spreadingChain(i, sequences.at(i), degree_polymerization, random_polymerization, optimize_size);
+        spreadingChain(i, sequences.at(i), degree_polymerization, pool_choice, para_A, para_B, random_polymerization, optimize_size);
     }
 }
 

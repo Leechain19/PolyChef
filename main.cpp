@@ -191,6 +191,13 @@ void solve(const std::string& filename) {
     std::string file_info;
     readFromJSON(j, file_info, STRINGIFY(file_info));
 
+    std::string pool_choice;
+    readFromJSON(j, pool_choice, STRINGIFY(pool_choice));
+
+    float para_A = 1.0f, para_B = 1.0f;
+    readFromJSON(j, para_A, STRINGIFY(para_A));
+    readFromJSON(j, para_B, STRINGIFY(para_B));
+
     bool verbose = false;
     readFromJSON(j, verbose, STRINGIFY(verbose));
 
@@ -240,7 +247,8 @@ void solve(const std::string& filename) {
 
             auto g_ptr = std::make_shared<Graph>();
             auto loss_vector_ptr = std::make_unique<std::vector<std::pair<double, double>>>();
-            curveSpreading(target_points, g_ptr, tree, sequence, chain_max_polymerization_degree, 5.0f, 5, random_polymerization, optimize_size, verbose, bad_signal_cost, loss_vector_ptr);
+            curveSpreading(target_points, g_ptr, tree, sequence, chain_max_polymerization_degree, pool_choice, para_A, para_B, 5.0f, 5, random_polymerization, optimize_size,
+                           verbose, bad_signal_cost, loss_vector_ptr);
 
             g_ptr->makeEnd("H");
             chemio::writeMol2File(mol2_file_name, adj_file_name, g_ptr, file_info);
@@ -359,7 +367,7 @@ void solve(const std::string& filename) {
             }
         }
 
-        cls->calcChainGraphs(sequences, chain_max_polymerization_degree, random_polymerization, optimize_size);
+        cls->calcChainGraphs(sequences, chain_max_polymerization_degree, pool_choice, para_A, para_B, random_polymerization, optimize_size);
         cls->makeEnd(std::string("H"));
 
         std::string mol2_file_name = saving_dir + "/crosslink.mol2";
@@ -396,8 +404,11 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     ("opti", "Optimize Size", cxxopts::value<int>())
     ("o,output", "Output directory path", cxxopts::value<std::string>())
     ("info", "File info", cxxopts::value<std::string>())
+    ("pool", "pooling choice", cxxopts::value<std::string>())
     ("v,verbose", "Verbose", cxxopts::value<bool>())
     ("t,threads", "Threads", cxxopts::value<int>())
+    ("para_A", "Parameter A", cxxopts::value<float>())
+    ("para_B", "Parameter B", cxxopts::value<float>())
     ("h,help", "Show help");
 
     auto result = options.parse(argc, argv);
@@ -464,6 +475,11 @@ void config(int argc, char* argv[], const std::string& config_filename) {
         std::cout << "Output directory path has been changed to: " << config["output_directory_path"] << std::endl;
     }
 
+    if (result.count("pool")) {
+        config["pool_choice"] = result["pool"].as<std::string>();
+        std::cout << "Pooling choice has been changed to: " << config["pool_choice"] << std::endl;
+    }
+
     if (result.count("info")) {
         config["file_info"] = result["info"].as<std::string>();
         std::cout << "File Info: " << config["file_info"] << std::endl;
@@ -477,6 +493,16 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     if (result.count("threads")) {
         config["threads"] = result["threads"].as<int>();
         std::cout << "Threads number: " << config["threads"] << std::endl;
+    }
+
+    if (result.count("para_A")) {
+        config["para_A"] = result["para_A"].as<float>();
+        std::cout << "Parameter A: " << config["para_A"] << std::endl;
+    }
+
+    if (result.count("para_B")) {
+        config["para_B"] = result["para_B"].as<float>();
+        std::cout << "Parameter B: " << config["para_B"] << std::endl;
     }
 
     if (save_config(config, config_filename)) {

@@ -51,8 +51,8 @@ std::shared_ptr<Graph> FastaGenerator::getNext() {
 
 
 void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<Graph> g, std::shared_ptr<Grid> tree, const std::vector<std::shared_ptr<Graph>>& sequence,
-                                      int degree_of_polymerization, float window_distance, int optimize_atom_number, bool random_polymerization, int optimize_size,
-                                      bool verbose, double bad_cost, const std::unique_ptr<std::vector<std::pair<double, double>>>& loss_vector_ptr) {
+                    int degree_of_polymerization, const std::string& pool_choice, float para_A, float para_B, float window_distance, int optimize_atom_number,
+                    bool random_polymerization, int optimize_size, bool verbose, double bad_cost, const std::unique_ptr<std::vector<std::pair<double, double>>>& loss_vector_ptr) {
     assert(optimize_atom_number > 2);
     Pointer pointer(0, 0);
 
@@ -113,13 +113,13 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
         return cur;
     };
 
-    auto opt_ptr = std::make_shared<Optimizer>(1.0f, tree, target_points, pointer, optimize_size);
+    auto opt_ptr = std::make_shared<Optimizer>(1.0f, tree, target_points, pointer, optimize_size, pool_choice, para_A, para_B);
 
-    int stat = 0; // 1:early_stop -1: bad_signal 0:full
+    Spreading_stat stat = Spreading_stat::FULL_STOP;
 
     auto optimize_process = [&bone_line, &g, &pointer, &target_points, &window_distance, &opt_ptr, &add_tree, &verbose,
                              &stat, &bad_cost, &loss_vector_ptr](int tree_index, int size) -> int {
-        while ((int)bone_line.size() >= size && stat >= 0) {
+        while ((int)bone_line.size() >= size && stat != Spreading_stat::BAD_SIGNAL) {
             int u = bone_line.front();
             bone_line.pop_front();
             int v = bone_line.front();
@@ -157,7 +157,7 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
                 auto theta = optimizer::optimize(opt_ptr, atom_list, position_u, K, verbose);
                 auto [val_cost, lj_cost] = opt_ptr->objective_fcn_pair(theta);
                 if (val_cost + lj_cost > bad_cost) {
-                    stat = -1;
+                    stat = Spreading_stat::BAD_SIGNAL;
                     break;
                 }
                 auto R = rodrigues(K, theta);
@@ -189,13 +189,13 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
 
         if (pointer.left + 1 == pointer.right && pointer.right == (int)target_points.size() &&
         atom::positionMinusPosition(target_points.back(), g->getAtomPosition(g->polyBack()->getNeigh())).dot(atom::positionMinusPosition(g->getPolyPosition(1), g->getAtomPosition(g->polyBack()->getNeigh()))) <= 0) {
-            stat = 1;
+            stat = Spreading_stat::EARLY_STOP;
             break;
         }
-        if (stat < 0) {
+        if (stat == Spreading_stat::BAD_SIGNAL) {
             break;
         }
-//        if (epoch % 15000 == 0) {
+//        if (epoch % 3000 == 0) {
 //            auto end = std::chrono::steady_clock::now();
 //            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 //            time_memo.emplace_back(duration.count());
@@ -210,9 +210,9 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
 //    std::cout << "]";
 
     progress_bar.done();
-    if (stat > 0)
+    if (stat == Spreading_stat::EARLY_STOP)
         std::cout << "Early stop!" << std::endl;
-    else if (stat == 0)
+    else if (stat == Spreading_stat::FULL_STOP)
         std::cout << "Full stop!" << std::endl;
     else
         std::cout << "Warning: Bad signal!" << std::endl;

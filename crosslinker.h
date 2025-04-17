@@ -113,10 +113,11 @@ public:
     [[nodiscard]] const std::vector<std::array<int, 4>>& getCrosslinkerNetwork() const ;
 
     void spreadingChain(int chain_index, const std::vector<std::shared_ptr<Graph>> &sequence,
-                        int degree_polymerization, bool random_polymerization, int optimize_size);
+                        int degree_polymerization, const std::string& pool_choice, float para_A,
+                        float para_B, bool random_polymerization, int optimize_size);
 
-    void calcChainGraphs(const std::vector<std::vector<std::shared_ptr<Graph>>>& sequences,
-                         int degree_polymerization, bool random_polymerization = false, int optimize_size = 1);
+    void calcChainGraphs(const std::vector<std::vector<std::shared_ptr<Graph>>>& sequences, int degree_polymerization,
+                                             const std::string& pool_choice, float para_A, float para_B, bool random_polymerization, int optimize_size);
 
     void makeEnd(const std::string& end_system);
 

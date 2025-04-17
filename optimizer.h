@@ -10,10 +10,17 @@
 #include "atom.h"
 #include <utility>
 #include <ctime>
+#include <numeric>
 
 struct Pointer {
     int left, right;
     explicit Pointer(int left = 0, int right = 0);
+};
+
+enum class Pool_type : int {
+    AVE,
+    MIN,
+    MAX
 };
 
 template<typename T>
@@ -33,16 +40,36 @@ private:
     std::shared_ptr<Grid> tree;
     const std::vector<Position>& target_points;
     const Pointer& pointer;
+    Pool_type pool_type;
     int cal_len;
+    float para_A;
+    float para_B;
 
 public:
     std::vector<Position> atoms_list;
     Position root_position{};
     Vector K{};
 
-    Optimizer(float LJ_weight, std::shared_ptr<Grid> tree, const std::vector<Position>& target_points, const Pointer& pointer, int cal_len);
+    Optimizer(float LJ_weight, std::shared_ptr<Grid> tree, const std::vector<Position>& target_points, const Pointer& pointer,
+              int cal_len, const std::string& pool_choice, float para_A, float para_B);
 
     std::pair<float, float> objective_fcn_pair(float angle);
+
+    template<typename T>
+    static void getMax(T& ans, T val) {
+        ans = std::max(ans, val);
+    }
+
+    template<typename T>
+    static void getMin(T& ans, T val) {
+        ans = std::min(ans, val);
+    }
+
+    template<typename T>
+    static void getAve(T& ans, T val) {
+        ans += val;
+    }
+
     float objective_fcn(float angle);
 };
 
