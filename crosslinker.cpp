@@ -128,7 +128,7 @@ void CrossLinker::addAtom(int index, std::shared_ptr<Atom> atom_ptr, bool ar) {
     this->is_ar[index] = ar;
 }
 
-void CrossLinker::addEdge(int from, int to, const std::string &type) {
+void CrossLinker::addEdge(int from, int to, Bond_type type) {
     if (from < 0 || from >= n || to < 0 || to >= n) {
         throw exception::InvalidParameterException("(CrossLinker.addEdge) Index exceeds bound");
     }
@@ -212,8 +212,8 @@ void CrossLinker::makeEnd(int poly_index, const std::string& end_symbol) {
     auto atom1_ptr = std::make_shared<Atom>(end_symbol, new_pos.x(), new_pos.y(), new_pos.z());
     this->addAtom(atom1_ptr);
     int cur = n - 1;
-    addEdge(cur, poly_ptr->getNeigh(), "1");
-    addEdge(poly_ptr->getNeigh(), cur, "1");
+    addEdge(cur, poly_ptr->getNeigh(), Bond_type::SINGLE_BOND);
+    addEdge(poly_ptr->getNeigh(), cur, Bond_type::SINGLE_BOND);
 }
 
 CrosslinkingSystem::CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslinkers, std::vector<std::array<int, 4>> crosslinker_network,

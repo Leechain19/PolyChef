@@ -11,9 +11,17 @@
 #include <iostream>
 #include <array>
 #include <cmath>
+#include <sstream>
 
 using Position = Eigen::Vector3f;
 using Vector = Eigen::Vector3f;
+
+enum class Bond_type {
+    SINGLE_BOND,
+    DOUBLE_BOND,
+    TRIPLE_BOND,
+    AROMATIC_BOND
+};
 
 class Atom {
 private:
@@ -114,10 +122,10 @@ class Edge {
 
 private:
     int to;
-    std::string type;
+    Bond_type type;
 
 public:
-    Edge(int to, std::string type);
+    Edge(int to, Bond_type type);
     ~Edge() = default;
     Edge(const Edge& e) = default;
     Edge(Edge&& e)  noexcept ;
@@ -130,9 +138,9 @@ public:
 
     void setTo(int new_to);
 
-    const std::string& getType();
+    Bond_type getType();
 
-    void setType(std::string new_type);
+    void setType(Bond_type new_type);
 
     friend std::ostream& operator<<(std::ostream& os, const Edge& e);
 };

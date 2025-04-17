@@ -51,7 +51,7 @@ public:
 
     [[nodiscard]] int getMonomerType() const ;
 
-    void addEdge(int from, int to, const std::string& type);
+    void addEdge(int from, int to, Bond_type type);
 
     void addPoly(float x, float y, float z, int neigh);
 

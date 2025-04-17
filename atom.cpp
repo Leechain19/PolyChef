@@ -214,14 +214,17 @@ std::ostream& operator<<(std::ostream& os, const Poly& poly) {
     return os;
 }
 
-Edge::Edge(int to, std::string type) : to(to), type(std::move(type)) {}
+Edge::Edge(int to, Bond_type type) : to(to), type(type) {}
 
 Edge::Edge(Edge&& e)  noexcept {
     to = e.to;
-    type = std::move(e.type);
+    type = e.type;
 }
 
 Edge& Edge::operator=(const Edge& e) {
+    if (this == &e) {
+        return *this;
+    }
     to = e.to;
     type = e.type;
     return *this;
@@ -230,8 +233,7 @@ Edge& Edge::operator=(const Edge& e) {
 Edge& Edge::operator=(Edge&& e)  noexcept {
     to = e.to;
     e.to = -1;
-    type = std::move(e.type);
-    e.type.clear();
+    type = e.type;
     return *this;
 }
 
@@ -243,17 +245,17 @@ void Edge::setTo(int new_to) {
     to = new_to;
 }
 
-const std::string& Edge::getType() {
+Bond_type Edge::getType() {
     return type;
 }
 
-void Edge::setType(std::string new_type) {
-    type = std::move(new_type);
+void Edge::setType(Bond_type new_type) {
+    type = new_type;
 }
 
 std::ostream& operator<<(std::ostream& os, const Edge& e) {
     os << "Edge(to = " << e.to << " "
-    << "type = " << e.type << ")";
+    << "type = " << static_cast<std::underlying_type<Bond_type>::type>(e.type) << ")";
     return os;
 }
 

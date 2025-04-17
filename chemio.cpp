@@ -96,9 +96,10 @@ std::shared_ptr<Graph> chemio::PyInfoConvertToGraph(
     for (const auto& vec : edges_vec) {
         int x = static_cast<int>(std::get<long>(vec[0]));
         int y = static_cast<int>(std::get<long>(vec[1]));
-        std::string type = std::get<std::string>(vec[2]);
-        g->addEdge(x, y, type);
-        g->addEdge(y, x, type);
+        std::string bond_string = std::get<std::string>(vec[2]);
+        Bond_type bond_type = getBondTypeByString(bond_string);
+        g->addEdge(x, y, bond_type);
+        g->addEdge(y, x, bond_type);
     }
 
     // polys
@@ -118,7 +119,6 @@ std::shared_ptr<Graph> chemio::PyInfoConvertToGraph(
     }
 
     g->calMainChain();
-
     return g;
 }
 
@@ -145,9 +145,11 @@ std::shared_ptr<CrossLinker> chemio::PyInfoConvertToCrossLinker(
     for (const auto& vec : edges_vec) {
         int x = static_cast<int>(std::get<long>(vec[0]));
         int y = static_cast<int>(std::get<long>(vec[1]));
-        std::string type = std::get<std::string>(vec[2]);
-        g->addEdge(x, y, type);
-        g->addEdge(y, x, type);
+        std::string bond_string = std::get<std::string>(vec[2]);
+        Bond_type bond_type = chemio::getBondTypeByString(bond_string);
+
+        g->addEdge(x, y, bond_type);
+        g->addEdge(y, x, bond_type);
     }
 
     // polys
@@ -545,6 +547,26 @@ std::string chemio::getAtomType(const std::string& name, int bond_num, bool ar) 
     return name;
 }
 
+std::string chemio::getBondSymbolByBondType(Bond_type bond_type) {
+    if (bond_type == Bond_type::SINGLE_BOND) {
+        return "1";
+    }
+    if (bond_type == Bond_type::DOUBLE_BOND) {
+        return "2";
+    }
+    if (bond_type == Bond_type::TRIPLE_BOND) {
+        return "3";
+    }
+    return "ar";
+}
+
+Bond_type chemio::getBondTypeByString(const std::string& s) {
+    if (s == "1") return Bond_type::SINGLE_BOND;
+    if (s == "2") return Bond_type::DOUBLE_BOND;
+    if (s == "3") return Bond_type::TRIPLE_BOND;
+    return Bond_type::AROMATIC_BOND;
+}
+
 void chemio::writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::shared_ptr<Graph>& g, const std::string& file_info) {
     std::ofstream outFile(file_name);
     if (!outFile.is_open()) {
@@ -585,9 +607,9 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
         for (const auto& ptr : vec) {
             int to = ptr->getTo();
             if (i < to) {
-                const std::string& tp = ptr->getType();
+                auto tp = ptr->getType();
                 outFile << std::setw(6) << std::right << (edge_idx ++) << std::setw(6) << std::right << i + 1 << std::setw(6) << std::right
-                << to + 1 << std::setw(7) << std::right << tp << '\n';
+                << to + 1 << std::setw(7) << std::right << getBondSymbolByBondType(tp) << '\n';
             }
         }
     }
@@ -715,8 +737,9 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
                 atom_env[atom_id1] += cl->getAtom(to)->getSymbol() + " ";
 
                 if (atom_id1 < atom_id2) {
-                    const auto &tp = e->getType();
-                    outFile << std::setw(6) << std::right << (++ edge_index) << std::setw(6) << std::right << atom_id1 + 1 << std::setw(6) << std::right << atom_id2 + 1 << std::setw(7) << std::right << tp << '\n';
+                    auto tp = e->getType();
+                    outFile << std::setw(6) << std::right << (++ edge_index) << std::setw(6) << std::right << atom_id1 + 1 << std::setw(6) << std::right
+                        << atom_id2 + 1 << std::setw(7) << std::right << getBondSymbolByBondType(tp) << '\n';
                 }
             }
         }
@@ -734,8 +757,9 @@ void chemio::writeMol2File(const std::string& file_name, const std::string& adj_
                 atom_env[atom_id1] += g->getAtom(to)->getSymbol() + " ";
 
                 if (atom_id1 < atom_id2) {
-                    const auto &tp = e->getType();
-                    outFile << std::setw(6) << std::right << (++ edge_index) << std::setw(6) << std::right << atom_id1 + 1 << std::setw(6) << std::right << atom_id2 + 1 << std::setw(7) << std::right << tp << '\n';
+                    auto tp = e->getType();
+                    outFile << std::setw(6) << std::right << (++ edge_index) << std::setw(6) << std::right << atom_id1 + 1 << std::setw(6) << std::right <<
+                        atom_id2 + 1 << std::setw(7) << std::right << chemio::getBondSymbolByBondType(tp) << '\n';
                 }
             }
         }

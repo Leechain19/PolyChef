@@ -126,7 +126,7 @@ public:
 
     void setMonoTypeAll(int mono_type);
 
-    void addEdge(int from, int to, const std::string& type, bool onring = false);
+    void addEdge(int from, int to, Bond_type type, bool onring = false);
 
     bool checkOnRing(int from, int to);
 

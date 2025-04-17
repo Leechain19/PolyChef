@@ -6,6 +6,7 @@
 #define ATOM_SEARCH_CPP_CHEMIO_H
 
 #include "graph.h"
+#include "atom.h"
 #include "crosslinker.h"
 #include <memory>
 #include <vector>
@@ -56,6 +57,9 @@ namespace chemio {
     std::shared_ptr<CrossLinker> buildCrossLinkerFromMol2(const std::string& path);
 
     std::string getAtomType(const std::string& name, int bond_num, bool ar = false);
+    std::string getBondSymbolByBondType(Bond_type bond_type);
+    Bond_type getBondTypeByString(const std::string& s);
+
     void writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::shared_ptr<Graph>& g, const std::string& file_info);
     void writeMol2File(const std::string& file_name, const std::string& adj_file_name, const std::unique_ptr<CrosslinkingSystem>& cls, const std::string& file_info);
     void writeLoss2File(const std::string& loss_file_name, const std::unique_ptr<std::vector<std::pair<double, double>>>& loss_vec_ptr);

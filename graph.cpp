@@ -274,8 +274,8 @@ void Graph::_make_end(const std::string& end_symbol, int poly_index, bool poly_d
     auto atom1_ptr = std::make_shared<Atom>(end_symbol, new_pos.x(), new_pos.y(), new_pos.z());
     this->addAtom(atom1_ptr, mono_index, mono_type, false);
     int cur = n - 1;
-    addEdge(cur, poly_ptr->getNeigh(), "1");
-    addEdge(poly_ptr->getNeigh(), cur, "1");
+    addEdge(cur, poly_ptr->getNeigh(), Bond_type::SINGLE_BOND);
+    addEdge(poly_ptr->getNeigh(), cur, Bond_type::SINGLE_BOND);
 }
 
 Graph::Graph() : n(0), vertices(), edges(), monos(), polys(), is_period(false), ring_edges(), is_on_main_chain(), is_ar(), mono2ver() {}
@@ -364,7 +364,7 @@ void Graph::setMonoTypeAll(int mono_type) {
     std::fill(mono_types.begin(), mono_types.end(), mono_type);
 }
 
-void Graph::addEdge(int from, int to, const std::string& type, bool onring) {
+void Graph::addEdge(int from, int to, Bond_type type, bool onring) {
     if (from < 0 || from >= n || to < 0 || to >= n) {
         throw exception::InvalidParameterException("(Graph.addEdge) Index exceeds bound");
     }
@@ -694,8 +694,8 @@ void Graph::connect(const std::shared_ptr<Graph>& g, int poly_index, bool poly_d
     }
 
     // add new bond
-    addEdge(poly1_ptr->getNeigh(), poly2_ptr->getNeigh() + old_size, "1", false);
-    addEdge(poly2_ptr->getNeigh() + old_size, poly1_ptr->getNeigh(), "1", false);
+    addEdge(poly1_ptr->getNeigh(), poly2_ptr->getNeigh() + old_size, Bond_type::SINGLE_BOND, false);
+    addEdge(poly2_ptr->getNeigh() + old_size, poly1_ptr->getNeigh(), Bond_type::SINGLE_BOND, false);
 
     if (poly_delete) {
         polys.pop(poly_index);
