@@ -7,6 +7,7 @@
 
 #include "de/DifferentialEvolution.h"
 #include "grid.h"
+#include "mathfunc.h"
 #include "atom.h"
 #include <utility>
 #include <ctime>

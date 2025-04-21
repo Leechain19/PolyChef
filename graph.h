@@ -10,7 +10,6 @@
 #include "hash.h"
 #include "mathfunc.h"
 #include "chemtable.h"
-#include "grid.h"
 #include "loadlib.h"
 #include "progresscpp/ProgressBar.hpp"
 #include <utility>

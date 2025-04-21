@@ -85,7 +85,7 @@ class CrosslinkingSystem {
 public:
     CrosslinkingSystem() = delete;
     CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslinkers, std::vector<std::array<int, 4>> crosslinker_network,
-                       std::vector<std::vector<Position>> point_lists);
+                       std::vector<std::vector<Position>> point_lists, std::shared_ptr<Grid> tree);
 
     CrosslinkingSystem(const CrosslinkingSystem& other) = delete;
     CrosslinkingSystem& operator=(const CrosslinkingSystem& other) = delete;
@@ -117,7 +117,7 @@ public:
                         float para_B, bool random_polymerization, int optimize_size);
 
     void calcChainGraphs(const std::vector<std::vector<std::shared_ptr<Graph>>>& sequences, int degree_polymerization,
-                                             const std::string& pool_choice, float para_A, float para_B, bool random_polymerization, int optimize_size);
+                         const std::string& pool_choice, float para_A, float para_B, bool random_polymerization, int optimize_size);
 
     void makeEnd(const std::string& end_system);
 

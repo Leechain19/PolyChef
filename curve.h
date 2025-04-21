@@ -11,6 +11,9 @@
 #include "loadlib.h"
 #include "kdtree.hpp"
 #include "progresscpp/ProgressBar.hpp"
+#include <random>
+#include <iostream>
+#include <fstream>
 #include <memory>
 #include <utility>
 #include <vector>

@@ -18,5 +18,9 @@
     "output_directory_path": "../data",
     "file_info": "NO_INFO",
     "verbose": false,
-    "threads": 16
+    "threads": 16,
+    "para_A": 1.0,
+    "para_B": 1.0,
+    "pool": "ave",
+    "obstacle_list": []
 }

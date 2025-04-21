@@ -42,7 +42,7 @@ message(STATUS "Python3 Libraries: ${Python3_LIBRARIES}")
 #link_directories("/home/public/miniconda3/envs/develop/lib/python3.8/site-packages")
 #link_libraries("/home/public/miniconda3/envs/develop/lib/libpython3.8.so")
 
-add_executable(atom-search-cpp main.cpp atom.cpp chemio.cpp chemtable.cpp curve.cpp graph.cpp grid.cpp mathfunc.cpp spreading.cpp optimizer.cpp loadlib.cpp crosslinker.cpp)
+add_executable(atom-search-cpp main.cpp atom.cpp chemio.cpp chemtable.cpp curve.cpp graph.cpp grid.cpp mathfunc.cpp spreading.cpp optimizer.cpp loadlib.cpp crosslinker.cpp utility.cpp)
 target_include_directories(atom-search-cpp PRIVATE ${Python3_INCLUDE_DIRS} Eigen3::Eigen)
 target_link_libraries(atom-search-cpp PRIVATE ${Python3_LIBRARIES} OpenMP::OpenMP_CXX dl Eigen3::Eigen)
 

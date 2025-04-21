@@ -7,7 +7,8 @@
 
 #include "hash.h"
 #include "atom.h"
-#include "graph.h"
+#include "utility.h"
+#include "exception.h"
 #include <omp.h>
 #include <Eigen/Dense>
 #include <unordered_map>
@@ -15,6 +16,7 @@
 #include <memory>
 #include <shared_mutex>
 #include <mutex>
+#include <fstream>
 
 namespace grid {
     constexpr float inf = std::numeric_limits<float>::max();
@@ -38,7 +40,7 @@ public:
     [[nodiscard]] int size() const;
     std::pair<std::shared_ptr<Atom>, float> search_nn(const Position &point, float collision_threshold = 2.5);
     void add(const Position &point, const std::string &symbol, bool including_hydrogen = true);
-    void add(const std::shared_ptr<Atom>& atom_ptr, bool including_hydrogen = true);
+    void add(std::shared_ptr<Atom> atom_ptr, bool including_hydrogen = true);
     void erase(const std::shared_ptr<Atom>& atom_ptr);
 
     template<typename T>
@@ -55,6 +57,9 @@ public:
 
     bool isCollision(const Position& point, float threshold);
 
+    void addCollisionMol2(const std::string& s);
+
+    void addCollisionMol2(const std::vector<std::string>& vec);
 };
 
 

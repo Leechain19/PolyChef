@@ -1,5 +1,4 @@
 #include "chemtable.h"
-#include "nlohmann/json.hpp"
 #include "graph.h"
 #include "curve.h"
 #include "grid.h"
@@ -9,6 +8,7 @@
 #include "spreading.h"
 #include "cxxopts.hpp"
 #include "optimizer.h"
+#include "utility.h"
 #include "exception.h"
 #include <filesystem>
 #include <omp.h>
@@ -20,111 +20,8 @@
 
 #define STRINGIFY(x) (#x)
 
-using json = nlohmann::json;
 constexpr int inf = 1e9;
 using Options = cxxopts::Options;
-
-bool fileExists(const std::string& filename) {
-    return std::filesystem::exists(filename);
-}
-
-bool startsWith(const std::string& s, const std::string& prefix) {
-    if ((int)s.size() < (int)prefix.size()) return false;
-    for (int i = 0; i < (int)prefix.size(); i ++) {
-        if (s[i] != prefix[i]) return false;
-    }
-    return true;
-}
-
-bool endsWith(const std::string& s, const std::string& suffix) {
-    if ((int)s.size() < (int)suffix.size()) return false;
-    int n = (int)s.size(), m = (int)suffix.size();
-
-    for (int i = 0; i < m; i ++) {
-        if (s[n-i-1] != suffix[m-i-1]) return false;
-    }
-    return true;
-}
-
-std::string lower(const std::string& s) {
-    std::string ret;
-    for (auto c : s) {
-        if (c >= 'A' and c <= 'Z') c = static_cast<char>(c + 'a' - 'A');
-        ret.push_back(c);
-    }
-    return ret;
-}
-
-std::string upper(const std::string& s) {
-    std::string ret;
-    for (auto c : s) {
-        if (c >= 'a' and c <= 'z') c = static_cast<char>(c + 'A' - 'a');
-        ret.push_back(c);
-    }
-    return ret;
-}
-
-template<typename T>
-void readFromJSON(const json& j, T& val, const std::string& name) {
-    if (j.count(name)) {
-        val = j[name].get<T>();
-        return;
-    }
-    val = T{};
-}
-
-template<typename T>
-void readVectorFromJSON(const json& j, std::vector<T>& vec, const std::string& name) {
-    if (j.count(name) && j[name].is_array()) {
-        for (const auto& x : j[name]) {
-            vec.push_back(x.get<T>());
-        }
-    }
-}
-
-std::string getCurrentTimeAsString() {
-    // 获取当前时间点
-    auto now = std::chrono::system_clock::now();
-    auto time_t_now = std::chrono::system_clock::to_time_t(now);
-
-    // 转换为tm结构体
-    std::tm* ltm = std::localtime(&time_t_now);
-
-    // 格式化为字符串
-    char buffer[80];
-    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", ltm);
-    return {buffer};
-}
-
-std::string connectStringVectorAsOne(const std::vector<std::string>& vec) {
-    std::string ret;
-    for (const auto& s : vec) {
-        ret += s;
-        ret.push_back('-');
-    }
-    if (!ret.empty()) ret.pop_back();
-    return ret;
-}
-
-namespace fs = std::filesystem;
-void createDirectory(const std::string& path) {
-    try {
-        if (fs::create_directory(path)) {
-            std::cout << "Directory created successfully: " << path << std::endl;
-        } else {
-            std::cout << "Directory already exists or creation failed: " << path << std::endl;
-        }
-    } catch (const fs::filesystem_error& e) {
-        std::cerr << "Filesystem error: " << e.what() << std::endl;
-    }
-}
-
-void InitializeOpenMP(int target_thread_num) {
-    std::cout << "Threads: " << target_thread_num << std::endl;
-    omp_set_num_threads(target_thread_num);
-//    eigen 不开启并行
-//    Eigen::setNbThreads(target_thread_num);
-}
 
 // 读取配置
 bool read_config(json& config, const std::string& path) {
@@ -194,6 +91,9 @@ void solve(const std::string& filename) {
     std::string pool_choice;
     readFromJSON(j, pool_choice, STRINGIFY(pool_choice));
 
+    std::vector<std::string> obstacle_list;
+    readFromJSON(j, obstacle_list, STRINGIFY(obstacle_list));
+
     float para_A = 1.0f, para_B = 1.0f;
     readFromJSON(j, para_A, STRINGIFY(para_A));
     readFromJSON(j, para_B, STRINGIFY(para_B));
@@ -222,6 +122,8 @@ void solve(const std::string& filename) {
 
         std::cout << "Build System [Chains] ..." << std::endl;
         auto tree = std::make_shared<Grid>();
+        tree->addCollisionMol2(obstacle_list);
+
         int string_number = chain_curve_list.size();
         std::cout << "Path: " << saving_dir << std::endl;
 
@@ -279,9 +181,9 @@ void solve(const std::string& filename) {
         // check inputs
         if (chain_psmiles_list.size() != crosslinking_curves.size() || crosslinking_curves.size() != crosslinking_network.size()) {
             std::string err_info = std::string("Input Error: ") +
-                                   " Chain psmiles list size: " + std::to_string(chain_psmiles_list.size()) +
-                                   " Crosslinking Curves size: " + std::to_string(crosslinking_curves.size()) +
-                                   " Crosslinking Network size: " + std::to_string(crosslinking_network.size());
+                    " Chain psmiles list size: " + std::to_string(chain_psmiles_list.size()) +
+                    " Crosslinking Curves size: " + std::to_string(crosslinking_curves.size()) +
+                    " Crosslinking Network size: " + std::to_string(crosslinking_network.size());
             throw std::runtime_error(err_info);
         }
 
@@ -338,9 +240,9 @@ void solve(const std::string& filename) {
             auto poly_position2 = checkPolyAndGetPosition(net[2], net[3]);
 
             if (
-                atom::positionDistanceSquared(cv.front(), poly_position1) > atom::positionDistanceSquared(cv.back(), poly_position1) &&
-                atom::positionDistanceSquared(cv.back(), poly_position2) > atom::positionDistanceSquared(cv.front(), poly_position2)
-                ) {
+                    atom::positionDistanceSquared(cv.front(), poly_position1) > atom::positionDistanceSquared(cv.back(), poly_position1) &&
+                    atom::positionDistanceSquared(cv.back(), poly_position2) > atom::positionDistanceSquared(cv.front(), poly_position2)
+                    ) {
                 // 曲线反了
                 std::reverse(cv.begin(), cv.end());
             }
@@ -353,7 +255,10 @@ void solve(const std::string& filename) {
 
         std::cout << "========== Curves Generation Finish =============" << std::endl;
 
-        auto cls = std::make_unique<CrosslinkingSystem>(crosslinkers, crosslinking_network, curve_points);
+        auto tree = std::make_shared<Grid>();
+        tree->addCollisionMol2(obstacle_list);
+
+        auto cls = std::make_unique<CrosslinkingSystem>(crosslinkers, crosslinking_network, curve_points, tree);
         std::vector<std::vector<std::shared_ptr<Graph>>> sequences((int)chain_psmiles_list.size());
         PsmilesBuilder<Graph> builder;
 
@@ -383,7 +288,7 @@ void solve(const std::string& filename) {
                 cnt_poly += t;
             }
         }
-//        std::cout << "sum_poly: " << sum_poly << " cnt_poly: " << cnt_poly << std::endl;
+        //        std::cout << "sum_poly: " << sum_poly << " cnt_poly: " << cnt_poly << std::endl;
         float degree_crosslinking = (sum_poly ? (float)cnt_poly / (float)sum_poly : 0.0f);
         std::cout << "Degree of crosslinking: " << std::fixed << std::setprecision(2) << degree_crosslinking * 100 << "%" << std::endl;
         return;
@@ -405,6 +310,7 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     ("o,output", "Output directory path", cxxopts::value<std::string>())
     ("info", "File info", cxxopts::value<std::string>())
     ("pool", "pooling choice", cxxopts::value<std::string>())
+    ("obstacle", "obstacle mol2 list", cxxopts::value<std::string>())
     ("v,verbose", "Verbose", cxxopts::value<bool>())
     ("t,threads", "Threads", cxxopts::value<int>())
     ("para_A", "Parameter A", cxxopts::value<float>())
@@ -478,6 +384,11 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     if (result.count("pool")) {
         config["pool_choice"] = result["pool"].as<std::string>();
         std::cout << "Pooling choice has been changed to: " << config["pool_choice"] << std::endl;
+    }
+
+    if (result.count("obstacle")) {
+        config["obstacle_list"] = result["obstacle"].as<std::string>();
+        std::cout << "Obstacle list has been changed to: " << config["obstacle_list"] << std::endl;
     }
 
     if (result.count("info")) {

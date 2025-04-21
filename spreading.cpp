@@ -195,7 +195,7 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
         if (stat == Spreading_stat::BAD_SIGNAL) {
             break;
         }
-//        if (epoch % 3000 == 0) {
+//        if (epoch == 100 || epoch == 500 || epoch == 1000 || epoch == 2000 || epoch % 3000 == 0) {
 //            auto end = std::chrono::steady_clock::now();
 //            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 //            time_memo.emplace_back(duration.count());
@@ -204,7 +204,7 @@ void curveSpreading(const std::vector<Position>& target_points, std::shared_ptr<
     }
 //    std::cout << "[";
 //    for (int i = 0; i < time_memo.size(); i ++) {
-//        std::cout << time_memo[i] / 1000.0;
+//        std::cout << time_memo[i];
 //        if (i < (int)time_memo.size() - 1) std::cout << ", ";
 //    }
 //    std::cout << "]";

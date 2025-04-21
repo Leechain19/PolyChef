@@ -77,7 +77,7 @@ void Grid::add(const Position &point, const std::string &symbol, bool including_
     _size += 1;
 }
 
-void Grid::add(const std::shared_ptr<Atom>& atom_ptr, bool including_hydrogen) {
+void Grid::add(std::shared_ptr<Atom> atom_ptr, bool including_hydrogen) {
     if (atom_ptr->getSymbol().empty()) {
         throw exception::InvalidParameterException("The symbol string is empty");
     }
@@ -98,5 +98,35 @@ void Grid::erase(const std::shared_ptr<Atom>& atom_ptr) {
     if (!cell.atoms.empty() && cell.atoms.back() == atom_ptr) {
         cell.atoms.pop_back();
         _size -= 1;
+    }
+}
+
+void Grid::addCollisionMol2(const std::string &s) {
+    std::fstream file(s, std::ios::in);
+    if (!file.is_open()) {
+        throw std::runtime_error("Unknown obstacle file:" + s);
+    }
+    bool is_atom_line = false;
+
+    std::string line;
+
+    while (std::getline(file, line)) {
+        if (startsWith(line, "@<TRIPOS>ATOM")) {
+            is_atom_line = true;
+            continue;
+        }
+        if (startsWith(line, "@<TRIPOS>BOND")) {
+            is_atom_line = false;
+            break;
+        }
+        if (is_atom_line) {
+            this->add(getAtomFromMol2Line(line), true);
+        }
+    }
+}
+
+void Grid::addCollisionMol2(const std::vector<std::string> &vec) {
+    for (const auto& ss : vec) {
+        addCollisionMol2(ss);
     }
 }

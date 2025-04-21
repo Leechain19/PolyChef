@@ -4,6 +4,8 @@
 
 #include "crosslinker.h"
 
+#include <utility>
+
 
 CrossLinker::CrossLinker(int n, std::vector<std::shared_ptr<Atom>> atoms, std::vector<int> is_ar, int mono_type) :
 n(n), vertices(std::move(atoms)), is_ar(std::move(is_ar)), mono_type(mono_type) {}
@@ -217,11 +219,11 @@ void CrossLinker::makeEnd(int poly_index, const std::string& end_symbol) {
 }
 
 CrosslinkingSystem::CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslinkers, std::vector<std::array<int, 4>> crosslinker_network,
-                                       std::vector<std::vector<Position>> point_lists) :
+                                       std::vector<std::vector<Position>> point_lists, std::shared_ptr<Grid> tree) :
                                        crosslinkers_(std::move(crosslinkers)), crosslinker_network_(std::move(crosslinker_network)),
                                        point_lists_(std::move(point_lists)) {
     assert((int)point_lists_.size() == (int)crosslinker_network_.size());
-    tree_ptr_ = std::make_shared<Grid>();
+    tree_ptr_ = std::move(tree);
     for (const auto& cl : crosslinkers_) {
         tree_ptr_->add_mol(cl, true);
     }
