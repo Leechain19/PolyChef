@@ -1,26 +1,40 @@
 {
-    "polymer_type": "chain",
-
-    "crosslinker_mol2_list": ["../inputs/newmol.mol2"],
-    "crosslinking_network": [
-        [0,0,0,1]
-    ],
-    "crosslinking_curves": ["../inputs/testCurve.csv"],
-
     "chain_curve_list": [
-        "../inputs/obstacle/Cube_x30.csv"
+        "./3Dflower.csv"
     ],
-    "chain_psmiles_list": [["[*]CC[*]"]],
-    "random_polymerization": false,
-    "chain_max_polymerization_degree": 10000,
-    "optimize_size": 1,
-
-    "output_directory_path": "../data",
+    "chain_max_polymerization_degree": 1000,
+    "chain_psmiles_list": [
+        [
+            "[*]CC[*]"
+        ],
+	[
+		"[*]CC[*]"
+	]
+    ],
+    "crosslinker_mol2_list": [
+        "../inputs/newmol.mol2"
+    ],
+    "crosslinking_curves": [
+        "../inputs/testCurve.csv"
+    ],
+    "crosslinking_network": [
+        [
+            0,
+            0,
+            0,
+            1
+        ]
+    ],
     "file_info": "NO_INFO",
-    "verbose": false,
-    "threads": 16,
+    "optimize_size": 1,
+    "output_directory_path": "./",
     "para_A": 1.0,
     "para_B": 1.0,
-    "pool": "ave",
+    "polymer_type": "chain",
+    "pool_choice": "ave",
+    "random_polymerization": false,
+    "threads": 16,
+    "verbose": false,
     "obstacle_list": []
 }
+
