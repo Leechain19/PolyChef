@@ -7,6 +7,7 @@
 
 #include "nlohmann/json.hpp"
 #include "atom.h"
+#include "exception.h"
 #include <memory>
 #include <vector>
 #include <cassert>
@@ -25,21 +26,25 @@ std::string lower(const std::string& s);
 std::string upper(const std::string& s);
 
 template<typename T>
-void readFromJSON(const json& j, T& val, const std::string& name) {
+void readFromJSON(const json& j, T& val, const std::string& name, bool optional = false) {
     if (j.count(name)) {
         val = j[name].get<T>();
         return;
     }
-    val = T{};
+    if (!optional)
+        throw exception::MissingConfigError(name);
 }
 
 template<typename T>
-void readVectorFromJSON(const json& j, std::vector<T>& vec, const std::string& name) {
+void readVectorFromJSON(const json& j, std::vector<T>& vec, const std::string& name, bool optional = false) {
     if (j.count(name) && j[name].is_array()) {
         for (const auto& x : j[name]) {
             vec.push_back(x.get<T>());
         }
+        return;
     }
+    if (!optional)
+        throw exception::MissingConfigError(name);
 }
 
 std::string getCurrentTimeAsString();

@@ -85,7 +85,7 @@ class CrosslinkingSystem {
 public:
     CrosslinkingSystem() = delete;
     CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslinkers, std::vector<std::array<int, 4>> crosslinker_network,
-                       std::vector<std::vector<Position>> point_lists, std::shared_ptr<Grid> tree);
+                       std::vector<std::vector<Position>> point_lists, std::shared_ptr<Grid> tree, float window_distance);
 
     CrosslinkingSystem(const CrosslinkingSystem& other) = delete;
     CrosslinkingSystem& operator=(const CrosslinkingSystem& other) = delete;
@@ -129,6 +129,7 @@ private:
     std::vector<std::vector<Position>> point_lists_;
     std::shared_ptr<Grid> tree_ptr_;
     std::vector<std::shared_ptr<Graph>> chain_graphs_;
+    float window_distance_ = 5.0f;
 };
 
 #endif //ATOM_SEARCH_CPP_CROSSLINKER_H

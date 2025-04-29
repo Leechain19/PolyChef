@@ -6,6 +6,7 @@
 #define ATOM_SEARCH_CPP_EXCEPTION_H
 
 #include <stdexcept>
+#include <string>
 
 namespace exception {
     class IllegalStringException : public std::exception {
@@ -26,6 +27,12 @@ namespace exception {
         }
     private:
         std::string msg_;
+    };
+
+    class MissingConfigError : public std::runtime_error {
+        public:
+            explicit MissingConfigError(const std::string& field_name)
+            : std::runtime_error("Required configuration parameter '" + field_name + "' is missing in JSON file") {}
     };
 }
 

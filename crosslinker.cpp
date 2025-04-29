@@ -219,9 +219,9 @@ void CrossLinker::makeEnd(int poly_index, const std::string& end_symbol) {
 }
 
 CrosslinkingSystem::CrosslinkingSystem(std::vector<std::shared_ptr<CrossLinker>> crosslinkers, std::vector<std::array<int, 4>> crosslinker_network,
-                                       std::vector<std::vector<Position>> point_lists, std::shared_ptr<Grid> tree) :
+                                       std::vector<std::vector<Position>> point_lists, std::shared_ptr<Grid> tree, float window_distance) :
                                        crosslinkers_(std::move(crosslinkers)), crosslinker_network_(std::move(crosslinker_network)),
-                                       point_lists_(std::move(point_lists)) {
+                                       point_lists_(std::move(point_lists)), window_distance_(window_distance) {
     assert((int)point_lists_.size() == (int)crosslinker_network_.size());
     tree_ptr_ = std::move(tree);
     for (const auto& cl : crosslinkers_) {
@@ -300,7 +300,7 @@ void CrosslinkingSystem::spreadingChain(int chain_index, const std::vector<std::
     assert(!crosslinkers_[cid1]->checkPolyUsedFlag(cpid1) && !crosslinkers_[cid2]->checkPolyUsedFlag(cpid2));
 
     auto chain_ptr = chain_graphs_.at(chain_index);
-    curveSpreading(point_lists_.at(chain_index), chain_ptr, tree_ptr_, sequence, degree_polymerization, pool_choice, para_A, para_B, 5.0f, 5, random_polymerization,
+    curveSpreading(point_lists_.at(chain_index), chain_ptr, tree_ptr_, sequence, degree_polymerization, pool_choice, para_A, para_B, this->window_distance_, 5, random_polymerization,
                    optimize_size, false, 10000.0);
 
     auto target_position = crosslinkers_.at(cid2)->getPolyPosition(cpid2);

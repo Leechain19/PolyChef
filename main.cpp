@@ -61,7 +61,7 @@ void solve(const std::string& filename) {
     readFromJSON(j, polymer_type, STRINGIFY(polymer_type));
     polymer_type = lower(polymer_type);
 
-    int threads = 1;
+    int threads = 8;
     readFromJSON(j, threads, STRINGIFY(threads));
 
     // OpenMP threads setting
@@ -79,44 +79,46 @@ void solve(const std::string& filename) {
     bool random_polymerization = false;
     readFromJSON(j, random_polymerization, STRINGIFY(random_polymerization));
 
-    int chain_max_polymerization_degree = 5000;
+    int chain_max_polymerization_degree = 0;
     readFromJSON(j, chain_max_polymerization_degree, STRINGIFY(chain_max_polymerization_degree));
 
     int optimize_size = 1;
     readFromJSON(j, optimize_size, STRINGIFY(optimize_size));
 
-    std::string file_info;
-    readFromJSON(j, file_info, STRINGIFY(file_info));
+    std::string file_info = "NO_INFO";
+    readFromJSON(j, file_info, STRINGIFY(file_info), true);
 
     std::string pool_choice;
     readFromJSON(j, pool_choice, STRINGIFY(pool_choice));
 
     std::vector<std::string> obstacle_list;
-    readFromJSON(j, obstacle_list, STRINGIFY(obstacle_list));
+    readFromJSON(j, obstacle_list, STRINGIFY(obstacle_list), true);
 
     float para_A = 1.0f, para_B = 1.0f;
-    readFromJSON(j, para_A, STRINGIFY(para_A));
-    readFromJSON(j, para_B, STRINGIFY(para_B));
+    readFromJSON(j, para_A, STRINGIFY(para_A), true);
+    readFromJSON(j, para_B, STRINGIFY(para_B), true);
 
     bool verbose = false;
-    readFromJSON(j, verbose, STRINGIFY(verbose));
+    readFromJSON(j, verbose, STRINGIFY(verbose), true);
 
+    float window_distance = 5.0f;
+    readFromJSON(j, window_distance, STRINGIFY(window_distance), true);
     // ==================
 
     auto now_time = getCurrentTimeAsString();
     std::cout << "Time: " << now_time << std::endl;
-
     // ===================
-
     auto saving_dir = output_directory_path;
     if (saving_dir.size() > 1 && saving_dir.back() == '/') saving_dir.pop_back();
+
+    std::cout << "HERE" << std::endl;
 
     // chain type
     if (startsWith(polymer_type, "chain")) {
 
         if (chain_psmiles_list.size() != chain_curve_list.size()) {
-            std::string err_info = std::string("Input Error: ") + "Chain Curve list size: " +
-                    std::to_string(chain_psmiles_list.size()) + " Chain psmiles list size: " + std::to_string(chain_psmiles_list.size());
+            std::string err_info = std::string("Input Error: ") + "Chain Curve list size: " + std::to_string(chain_curve_list.size())
+                    + " Chain psmiles list size: " + std::to_string(chain_psmiles_list.size());
             throw std::runtime_error(err_info);
         }
 
@@ -149,7 +151,7 @@ void solve(const std::string& filename) {
 
             auto g_ptr = std::make_shared<Graph>();
             auto loss_vector_ptr = std::make_unique<std::vector<std::pair<double, double>>>();
-            curveSpreading(target_points, g_ptr, tree, sequence, chain_max_polymerization_degree, pool_choice, para_A, para_B, 5.0f, 5, random_polymerization, optimize_size,
+            curveSpreading(target_points, g_ptr, tree, sequence, chain_max_polymerization_degree, pool_choice, para_A, para_B, window_distance, 5, random_polymerization, optimize_size,
                            verbose, bad_signal_cost, loss_vector_ptr);
 
             g_ptr->makeEnd("H");
@@ -258,7 +260,7 @@ void solve(const std::string& filename) {
         auto tree = std::make_shared<Grid>();
         tree->addCollisionMol2(obstacle_list);
 
-        auto cls = std::make_unique<CrosslinkingSystem>(crosslinkers, crosslinking_network, curve_points, tree);
+        auto cls = std::make_unique<CrosslinkingSystem>(crosslinkers, crosslinking_network, curve_points, tree, window_distance);
         std::vector<std::vector<std::shared_ptr<Graph>>> sequences((int)chain_psmiles_list.size());
         PsmilesBuilder<Graph> builder;
 
@@ -315,6 +317,7 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     ("t,threads", "Threads", cxxopts::value<int>())
     ("para_A", "Parameter A", cxxopts::value<float>())
     ("para_B", "Parameter B", cxxopts::value<float>())
+    ("window_distance", "Window distance", cxxopts::value<float>())
     ("h,help", "Show help");
 
     auto result = options.parse(argc, argv);
@@ -414,6 +417,11 @@ void config(int argc, char* argv[], const std::string& config_filename) {
     if (result.count("para_B")) {
         config["para_B"] = result["para_B"].as<float>();
         std::cout << "Parameter B: " << config["para_B"] << std::endl;
+    }
+
+    if (result.count("window_distance")) {
+        config["window_distance"] = result["window_distance"].as<float>();
+        std::cout << "Window distance: " << config["window_distance"] << std::endl;
     }
 
     if (save_config(config, config_filename)) {
