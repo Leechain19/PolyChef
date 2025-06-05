@@ -1,28 +1,31 @@
-# Atom-Search-cpp
+# PolyChef
 
-### 介绍
-cpp version for Atom-Search (PolyChef)
+### Introduce
 
-### 软件依赖
+PolyChef is a toolkit for generating polymers based on reference curves. Use pSMILES and CSV files of reference curves as input. At present, it supports monomers, intrachain entanglement, interchain entanglement, dendritic polymers, hyperbranched polymers, cross-linked polymers, mechanically interlocked polymers, and semi interpenetrating polymers.
+
+### Dependency
 
 Cmake version 3.20+ | GCC 11.2 | C++17 | Eigen3 | Python 3.8 | RDKit 2020.09.01 | OpenMP
 
-### 安装教程
-依赖库: Eigen / RDKit
+### Install
 
-推荐在conda虚拟环境中安装Eigen / RDKit / GCC / GXX / CMake
+Dependent Libraries: Eigen / RDKit
 
-先使用`which g++` `which gcc` `which cmake` 判断编译环境正确
+It is recommended to install Eigen/RDKit/GCC/GXX/CMake in a conda virtual environment.
 
-#### 编译命令
+Use   `which g++`  ,   `which gcc`  , and   `which cmake`   to check if the compilation environment is correctly set up.
+
+#### Make
+
 ```bash
 mkdir build
 cd build
 cmake ..
-make -j6
+make -j
 ```
 
-### 配置文件说明
+### Example input file
 
 ```json
 {
@@ -55,7 +58,7 @@ make -j6
             1
         ]
     ],
-    
+
     // 备注信息 (optional)
     "file_info": "NO_INFO",
     // 优化原子长度 一般为 1-10
@@ -83,22 +86,13 @@ make -j6
 }
 ```
 
+#### Compile dynamic library command:
 
-
-
-
-#### 编译动态库命令:
 g++ -shared -fPIC -I/usr/local/include/eigen3 -O3 -march=native -o libcustomFunction.so customFunction.cpp
 
-#### 运行指令
+#### Run command
+
 ```bash
 polychef run config.json
 polychef config config.json [options]
 ```
-
-### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
